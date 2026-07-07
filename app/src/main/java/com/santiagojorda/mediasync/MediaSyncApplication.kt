@@ -13,6 +13,12 @@ import com.santiagojorda.mediasync.data.repository.UploadLogRepository
 import com.santiagojorda.mediasync.media.MediaChangeObserver
 import com.santiagojorda.mediasync.media.MediaMetadataReader
 import com.santiagojorda.mediasync.media.MediaSyncCoordinator
+import com.santiagojorda.mediasync.upload.YouTubeQuotaTracker
+import com.santiagojorda.mediasync.work.MediaScanWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +39,7 @@ class MediaSyncApplication : Application() {
         ExcludedFolderRepository(database.excludedFolderDao())
     }
     val googleAuthManager: GoogleAuthManager by lazy { GoogleAuthManager(this) }
+    val youTubeQuotaTracker: YouTubeQuotaTracker by lazy { YouTubeQuotaTracker(database.youTubeQuotaDao()) }
     val mediaSyncCoordinator: MediaSyncCoordinator by lazy {
         MediaSyncCoordinator(
             context = this,
@@ -49,5 +56,15 @@ class MediaSyncApplication : Application() {
 
         contentResolver.registerContentObserver(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, mediaChangeObserver)
         contentResolver.registerContentObserver(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, mediaChangeObserver)
+
+        // Respaldo para cuando Android mata el proceso: el ContentObserver de arriba no se entera
+        // de nada si el proceso no está vivo. KEEP para no resetear el ciclo de 15 min cada vez
+        // que el proceso arranca de nuevo (podría terminar sin correr nunca si reinicia seguido).
+        val periodicScan = PeriodicWorkRequestBuilder<MediaScanWorker>(15, TimeUnit.MINUTES).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            MediaScanWorker.UNIQUE_WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            periodicScan,
+        )
     }
 }

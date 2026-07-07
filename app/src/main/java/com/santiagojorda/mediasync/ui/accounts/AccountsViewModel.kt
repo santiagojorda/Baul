@@ -55,4 +55,9 @@ class AccountsViewModel(
     fun removeAccount(account: ConnectedAccount) {
         viewModelScope.launch { connectedAccountRepository.remove(account) }
     }
+
+    /** Cuenta que usa el auto-sync de carpetas nuevas cuando hay más de una conectada. */
+    fun setDefault(account: ConnectedAccount) {
+        viewModelScope.launch { connectedAccountRepository.setDefault(account.email) }
+    }
 }

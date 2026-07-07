@@ -14,7 +14,20 @@ class ConnectedAccountRepository(private val dao: ConnectedAccountDao) {
 
     suspend fun getByEmail(email: String): ConnectedAccount? = dao.getByEmail(email)?.toDomain()
 
-    suspend fun save(account: ConnectedAccount) = dao.upsert(account.toEntity())
+    /** La que usa el auto-sync de carpetas nuevas. Si por algún motivo ninguna quedó marcada, cae a la primera conectada. */
+    suspend fun getDefault(): ConnectedAccount? = (dao.getDefault() ?: dao.getFirstConnected())?.toDomain()
+
+    /** La primera cuenta que se conecta queda default automáticamente; las siguientes no le pisan el default a la existente. */
+    suspend fun save(account: ConnectedAccount) {
+        val existing = dao.getByEmail(account.email)
+        val isDefault = existing?.isDefault ?: (dao.count() == 0)
+        dao.upsert(account.copy(isDefault = isDefault).toEntity())
+    }
+
+    suspend fun setDefault(email: String) {
+        dao.clearDefault()
+        dao.markAsDefault(email)
+    }
 
     suspend fun remove(account: ConnectedAccount) = dao.delete(account.toEntity())
 }

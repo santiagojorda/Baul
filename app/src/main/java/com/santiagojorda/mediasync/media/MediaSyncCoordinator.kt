@@ -44,11 +44,12 @@ class MediaSyncCoordinator(
     }
 
     /**
-     * Crea una regla automática a Google Photos (cuenta = la primera conectada) para una
-     * carpeta nueva sin regla propia, salvo que esté excluida por [AutoSyncFolderPolicy]. Todo
-     * bajo un lock: si dos archivos de la misma carpeta nueva llegan casi juntos, el segundo
-     * tiene que re-chequear (bajo el lock) que el primero no haya creado ya la regla, para no
-     * terminar con dos reglas duplicadas para la misma carpeta.
+     * Crea una regla automática a Google Photos (cuenta = la marcada como default en Cuentas, o
+     * la primera conectada si ninguna quedó marcada) para una carpeta nueva sin regla propia,
+     * salvo que esté excluida por [AutoSyncFolderPolicy]. Todo bajo un lock: si dos archivos de
+     * la misma carpeta nueva llegan casi juntos, el segundo tiene que re-chequear (bajo el lock)
+     * que el primero no haya creado ya la regla, para no terminar con dos reglas duplicadas para
+     * la misma carpeta.
      */
     private suspend fun maybeAutoCreateRule(relativePath: String?): RuleEntity? {
         if (relativePath == null) return null
@@ -59,7 +60,8 @@ class MediaSyncCoordinator(
             val activeRules = database.ruleDao().getActiveRules()
             activeRules.firstOrNull { RuleMatcher.matches(it, relativePath) }?.let { return@withLock it }
 
-            val account = database.connectedAccountDao().getFirstConnected() ?: return@withLock null
+            val accountDao = database.connectedAccountDao()
+            val account = (accountDao.getDefault() ?: accountDao.getFirstConnected()) ?: return@withLock null
             val folderName = AutoSyncFolderPolicy.folderDisplayName(relativePath)
             val now = System.currentTimeMillis()
             val newRule = RuleEntity(
@@ -80,26 +82,37 @@ class MediaSyncCoordinator(
     }
 
     /**
-     * Escanea TODA la MediaStore (no solo eventos nuevos) para encontrar carpetas que ya tenían
-     * fotos/videos de antes de usar la app y todavía no tienen ninguna regla. El ContentObserver
-     * por sí solo nunca se entera de archivos que ya estaban ahí, porque no generan ningún evento
-     * de cambio — por eso hace falta este barrido explícito. Se corre al abrir la app.
+     * Barrido completo: re-despacha lo pendiente de cada regla activa (cubre lo que el
+     * ContentObserver se perdió mientras el proceso estaba muerto — un observer reactivo no
+     * sirve de nada si Android mató la app) y además descubre carpetas nuevas sin regla, igual
+     * que [scanExistingFoldersForAutoSync]. Es la versión "suspend" pensada para que un Worker
+     * periódico (que sí sobrevive al proceso muerto) la pueda esperar de verdad.
      */
-    fun scanExistingFoldersForAutoSync() {
-        scope.launch {
-            val activeRules = database.ruleDao().getActiveRules()
-            val knownPaths = activeRules.mapNotNull { RuleMatcher.expectedRelativePath(it) }.toSet()
+    suspend fun scanAndDispatchAll() {
+        val activeRules = database.ruleDao().getActiveRules()
 
-            queryAllDistinctRelativePaths()
-                .filterNot { it in knownPaths }
-                .forEach { relativePath ->
-                    val rule = maybeAutoCreateRule(relativePath) ?: return@forEach
-                    queryExistingUris(rule).forEach { uri ->
-                        val metadata = metadataReader.read(uri) ?: return@forEach
-                        dispatch(rule, uri, metadata.mediaFile)
-                    }
-                }
+        activeRules.forEach { rule ->
+            queryExistingUris(rule).forEach { uri ->
+                val metadata = metadataReader.read(uri) ?: return@forEach
+                dispatch(rule, uri, metadata.mediaFile)
+            }
         }
+
+        val knownPaths = activeRules.mapNotNull { RuleMatcher.expectedRelativePath(it) }.toSet()
+        queryAllDistinctRelativePaths()
+            .filterNot { it in knownPaths }
+            .forEach { relativePath ->
+                val rule = maybeAutoCreateRule(relativePath) ?: return@forEach
+                queryExistingUris(rule).forEach { uri ->
+                    val metadata = metadataReader.read(uri) ?: return@forEach
+                    dispatch(rule, uri, metadata.mediaFile)
+                }
+            }
+    }
+
+    /** Versión "fire and forget" para disparar desde un LaunchedEffect al abrir la app. */
+    fun scanExistingFoldersForAutoSync() {
+        scope.launch { scanAndDispatchAll() }
     }
 
     private fun queryAllDistinctRelativePaths(): Set<String> {

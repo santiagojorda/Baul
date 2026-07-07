@@ -8,4 +8,5 @@ data class ConnectedAccount(
     val email: String,
     val displayName: String? = null,
     val connectedAt: Long = System.currentTimeMillis(),
+    val isDefault: Boolean = false,
 )

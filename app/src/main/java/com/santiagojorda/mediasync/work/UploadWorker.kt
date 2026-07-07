@@ -52,7 +52,12 @@ class UploadWorker(
 
         val app = applicationContext as MediaSyncApplication
         val destination = when (rule.destinationType) {
-            DestinationType.YOUTUBE -> YouTubeUploader(applicationContext, app.connectedAccountRepository, app.googleAuthManager)
+            DestinationType.YOUTUBE -> YouTubeUploader(
+                applicationContext,
+                app.connectedAccountRepository,
+                app.googleAuthManager,
+                app.youTubeQuotaTracker,
+            )
             DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(
                 applicationContext,
                 app.connectedAccountRepository,

@@ -20,6 +20,18 @@ interface ConnectedAccountDao {
     @Query("SELECT * FROM connected_accounts ORDER BY connectedAt ASC LIMIT 1")
     suspend fun getFirstConnected(): ConnectedAccountEntity?
 
+    @Query("SELECT * FROM connected_accounts WHERE isDefault = 1 LIMIT 1")
+    suspend fun getDefault(): ConnectedAccountEntity?
+
+    @Query("SELECT COUNT(*) FROM connected_accounts")
+    suspend fun count(): Int
+
+    @Query("UPDATE connected_accounts SET isDefault = 0")
+    suspend fun clearDefault()
+
+    @Query("UPDATE connected_accounts SET isDefault = 1 WHERE email = :email")
+    suspend fun markAsDefault(email: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(account: ConnectedAccountEntity)
 

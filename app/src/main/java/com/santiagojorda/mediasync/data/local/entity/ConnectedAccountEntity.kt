@@ -8,4 +8,6 @@ data class ConnectedAccountEntity(
     @PrimaryKey val email: String,
     val displayName: String? = null,
     val connectedAt: Long = System.currentTimeMillis(),
+    /** Cuál usa el auto-sync de carpetas nuevas cuando hay más de una cuenta conectada. */
+    val isDefault: Boolean = false,
 )

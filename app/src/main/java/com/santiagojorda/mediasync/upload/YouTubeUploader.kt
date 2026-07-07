@@ -39,6 +39,7 @@ class YouTubeUploader(
     private val context: Context,
     private val connectedAccountRepository: ConnectedAccountRepository,
     private val authManager: GoogleAuthManager,
+    private val quotaTracker: YouTubeQuotaTracker,
 ) : Destination {
 
     override suspend fun upload(file: MediaFile, rule: Rule): UploadResult = withContext(Dispatchers.IO) {
@@ -49,6 +50,16 @@ class YouTubeUploader(
             return@withContext UploadResult.Failure(
                 message = "La cuenta ${rule.googleAccountEmail} ya no está conectada",
                 retryable = false,
+            )
+        }
+
+        // Cortar ANTES de intentar: si ya estamos cerca del límite diario, no tiene sentido gastar
+        // la llamada para enterarnos recién con el 403 de Google. Reintentable: al otro día (o
+        // cuando resetee la cuota) hay lugar de nuevo.
+        if (!quotaTracker.hasRoomForUpload()) {
+            return@withContext UploadResult.Failure(
+                message = "Cerca del límite diario de cuota de YouTube, se reintenta más tarde",
+                retryable = true,
             )
         }
 
@@ -83,6 +94,7 @@ class YouTubeUploader(
                 .insert(listOf("snippet", "status"), video, mediaContent)
                 .execute()
 
+            quotaTracker.recordUpload()
             metadata.playlistId?.let { playlistId -> addToPlaylist(youtube, playlistId, insertedVideo.id) }
 
             UploadResult.Success(remoteId = insertedVideo.id)

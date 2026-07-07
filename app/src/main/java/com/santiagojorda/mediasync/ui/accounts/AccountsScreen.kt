@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -77,9 +79,21 @@ fun AccountsScreen(
                 )
             }
         } else {
+            if (accounts.size > 1) {
+                Text(
+                    text = "La cuenta con la estrella es la que usa el auto-sync de carpetas nuevas.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
             LazyColumn {
                 items(accounts, key = { it.email }) { account ->
-                    AccountRow(account = account, onRemove = { viewModel.removeAccount(account) })
+                    AccountRow(
+                        account = account,
+                        onRemove = { viewModel.removeAccount(account) },
+                        onSetDefault = { viewModel.setDefault(account) },
+                    )
                 }
             }
         }
@@ -87,7 +101,7 @@ fun AccountsScreen(
 }
 
 @Composable
-private fun AccountRow(account: ConnectedAccount, onRemove: () -> Unit) {
+private fun AccountRow(account: ConnectedAccount, onRemove: () -> Unit, onSetDefault: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -100,9 +114,15 @@ private fun AccountRow(account: ConnectedAccount, onRemove: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = account.displayName ?: account.email, style = MaterialTheme.typography.titleMedium)
                 Text(text = account.email, style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = onSetDefault) {
+                Icon(
+                    imageVector = if (account.isDefault) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = if (account.isDefault) "Cuenta default del auto-sync" else "Marcar como default",
+                )
             }
             IconButton(onClick = onRemove) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Quitar cuenta")

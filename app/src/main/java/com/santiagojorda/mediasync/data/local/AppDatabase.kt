@@ -10,10 +10,12 @@ import com.santiagojorda.mediasync.data.local.dao.ConnectedAccountDao
 import com.santiagojorda.mediasync.data.local.dao.ExcludedFolderDao
 import com.santiagojorda.mediasync.data.local.dao.RuleDao
 import com.santiagojorda.mediasync.data.local.dao.UploadLogDao
+import com.santiagojorda.mediasync.data.local.dao.YouTubeQuotaDao
 import com.santiagojorda.mediasync.data.local.entity.ConnectedAccountEntity
 import com.santiagojorda.mediasync.data.local.entity.ExcludedFolderEntity
 import com.santiagojorda.mediasync.data.local.entity.RuleEntity
 import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
+import com.santiagojorda.mediasync.data.local.entity.YouTubeQuotaUsageEntity
 
 @Database(
     entities = [
@@ -21,8 +23,9 @@ import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
         UploadLogEntity::class,
         ConnectedAccountEntity::class,
         ExcludedFolderEntity::class,
+        YouTubeQuotaUsageEntity::class,
     ],
-    version = 6,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -32,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun uploadLogDao(): UploadLogDao
     abstract fun connectedAccountDao(): ConnectedAccountDao
     abstract fun excludedFolderDao(): ExcludedFolderDao
+    abstract fun youTubeQuotaDao(): YouTubeQuotaDao
 
     companion object {
         @Volatile
