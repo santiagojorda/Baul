@@ -68,6 +68,7 @@ fun MediaSyncApp() {
     val currentRoute = backStackEntry?.destination?.route
 
     DeleteUploadedSourcesEffect(app)
+    ScanExistingFoldersEffect(app)
 
     Scaffold(
         topBar = {
@@ -220,5 +221,17 @@ private fun DeleteUploadedSourcesEffect(app: MediaSyncApplication) {
             val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
             deleteLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
         }
+    }
+}
+
+/**
+ * Carpetas que ya tenían fotos/videos de antes de usar la app nunca generan un evento de
+ * ContentObserver (no cambian), así que el auto-sync reactivo nunca las encuentra solo. Al abrir
+ * la app se corre un barrido completo de la MediaStore para agarrarlas también.
+ */
+@Composable
+private fun ScanExistingFoldersEffect(app: MediaSyncApplication) {
+    LaunchedEffect(Unit) {
+        app.mediaSyncCoordinator.scanExistingFoldersForAutoSync()
     }
 }

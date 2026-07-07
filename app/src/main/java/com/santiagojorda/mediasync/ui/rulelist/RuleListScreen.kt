@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ fun RuleListScreen(
                 onToggleActive = { viewModel.setActive(item.rule, it) },
                 onEdit = { onEditRule(item.rule.id) },
                 onDelete = { viewModel.delete(item.rule) },
+                onRetry = { viewModel.retryFailed(item.rule) },
             )
         }
     }
@@ -65,6 +67,7 @@ private fun RuleListRow(
     onToggleActive: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     Card(
         onClick = onEdit,
@@ -93,6 +96,11 @@ private fun RuleListRow(
                 )
             }
             Switch(checked = item.rule.isActive, onCheckedChange = onToggleActive)
+            if (item.hasFailedUploads) {
+                IconButton(onClick = onRetry) {
+                    Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reintentar fallidos")
+                }
+            }
             IconButton(onClick = onDelete) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Eliminar regla")
             }

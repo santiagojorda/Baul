@@ -21,6 +21,9 @@ interface UploadLogDao {
     @Query("SELECT * FROM upload_log WHERE status = 'SUCCESS' AND sourceDeleted = 0")
     suspend fun getSuccessfulNotYetDeleted(): List<UploadLogEntity>
 
+    @Query("SELECT * FROM upload_log WHERE ruleId = :ruleId AND status = 'FAILED'")
+    suspend fun getFailedForRule(ruleId: Long): List<UploadLogEntity>
+
     @Query("UPDATE upload_log SET sourceDeleted = 1 WHERE id IN (:ids)")
     suspend fun markSourceDeleted(ids: List<Long>)
 

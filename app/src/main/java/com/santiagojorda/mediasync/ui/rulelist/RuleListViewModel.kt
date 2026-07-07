@@ -16,11 +16,13 @@ data class RuleListItem(
     val rule: Rule,
     val lastSyncStatus: UploadStatus? = null,
     val lastSyncAt: Long? = null,
+    /** Error real (ya agotó los reintentos), no un fallo transitorio que todavía está reintentando solo. */
+    val hasFailedUploads: Boolean = false,
 )
 
 class RuleListViewModel(
     private val ruleRepository: RuleRepository,
-    uploadLogRepository: UploadLogRepository,
+    private val uploadLogRepository: UploadLogRepository,
 ) : ViewModel() {
 
     val items: StateFlow<List<RuleListItem>> = combine(
@@ -28,8 +30,14 @@ class RuleListViewModel(
         uploadLogRepository.observeLogs(),
     ) { rules, logs ->
         rules.map { rule ->
-            val lastLog = logs.filter { it.ruleId == rule.id }.maxByOrNull { it.updatedAt }
-            RuleListItem(rule = rule, lastSyncStatus = lastLog?.status, lastSyncAt = lastLog?.updatedAt)
+            val ruleLogs = logs.filter { it.ruleId == rule.id }
+            val lastLog = ruleLogs.maxByOrNull { it.updatedAt }
+            RuleListItem(
+                rule = rule,
+                lastSyncStatus = lastLog?.status,
+                lastSyncAt = lastLog?.updatedAt,
+                hasFailedUploads = ruleLogs.any { it.status == UploadStatus.FAILED },
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -39,5 +47,9 @@ class RuleListViewModel(
 
     fun delete(rule: Rule) {
         viewModelScope.launch { ruleRepository.delete(rule) }
+    }
+
+    fun retryFailed(rule: Rule) {
+        viewModelScope.launch { uploadLogRepository.retryAllFailedForRule(rule.id) }
     }
 }

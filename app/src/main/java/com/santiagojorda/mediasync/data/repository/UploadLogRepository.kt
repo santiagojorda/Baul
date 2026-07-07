@@ -36,6 +36,20 @@ class UploadLogRepository(
         )
     }
 
+    /** Reintenta todos los archivos que quedaron en FAILED (error real, no uno que ya reintentó solo) para una regla. */
+    suspend fun retryAllFailedForRule(ruleId: Long) {
+        val rule = ruleDao.getRuleById(ruleId) ?: return
+        uploadLogDao.getFailedForRule(ruleId).forEach { entry ->
+            UploadWorkScheduler.enqueue(
+                context = context,
+                ruleId = ruleId,
+                mediaUri = Uri.parse(entry.mediaUri),
+                wifiOnly = rule.wifiOnly,
+                policy = ExistingWorkPolicy.REPLACE,
+            )
+        }
+    }
+
     /** Subidas OK cuya regla pide borrar el original y todavía no se le pidió confirmación al usuario. */
     suspend fun getPendingDeletions(): List<UploadLogEntry> =
         uploadLogDao.getSuccessfulNotYetDeleted()

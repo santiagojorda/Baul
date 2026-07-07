@@ -79,6 +79,44 @@ class MediaSyncCoordinator(
         }
     }
 
+    /**
+     * Escanea TODA la MediaStore (no solo eventos nuevos) para encontrar carpetas que ya tenían
+     * fotos/videos de antes de usar la app y todavía no tienen ninguna regla. El ContentObserver
+     * por sí solo nunca se entera de archivos que ya estaban ahí, porque no generan ningún evento
+     * de cambio — por eso hace falta este barrido explícito. Se corre al abrir la app.
+     */
+    fun scanExistingFoldersForAutoSync() {
+        scope.launch {
+            val activeRules = database.ruleDao().getActiveRules()
+            val knownPaths = activeRules.mapNotNull { RuleMatcher.expectedRelativePath(it) }.toSet()
+
+            queryAllDistinctRelativePaths()
+                .filterNot { it in knownPaths }
+                .forEach { relativePath ->
+                    val rule = maybeAutoCreateRule(relativePath) ?: return@forEach
+                    queryExistingUris(rule).forEach { uri ->
+                        val metadata = metadataReader.read(uri) ?: return@forEach
+                        dispatch(rule, uri, metadata.mediaFile)
+                    }
+                }
+        }
+    }
+
+    private fun queryAllDistinctRelativePaths(): Set<String> {
+        val paths = mutableSetOf<String>()
+        val collections = listOf(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+        for (collection in collections) {
+            context.contentResolver.query(collection, arrayOf(MediaStore.MediaColumns.RELATIVE_PATH), null, null, null)
+                ?.use { cursor ->
+                    val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH)
+                    while (cursor.moveToNext()) {
+                        cursor.getString(pathColumn)?.let { paths.add(it) }
+                    }
+                }
+        }
+        return paths
+    }
+
     /** Encola los archivos que ya estaban en la carpeta de [ruleId] antes de crear/editar la regla. */
     fun backfillRule(ruleId: Long) {
         scope.launch {

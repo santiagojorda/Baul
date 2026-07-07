@@ -74,6 +74,11 @@ class UploadWorker(
         // se marca la subida como SUCCESS/sourceDeleted=false, y DeleteUploadedSourcesEffect (en
         // MediaSyncApp) revisa los pendientes y pide la confirmación la próxima vez que se abre la app.
 
+        // Mientras todavía queden reintentos disponibles para un fallo transitorio, no se muestra
+        // como error real en la UI (queda PENDING, "reintentando solo") — recién se marca FAILED
+        // si el error no es reintentable, o si ya se agotaron los reintentos.
+        val willRetry = uploadResult is UploadResult.Failure && uploadResult.retryable && runAttemptCount < MAX_RETRY_ATTEMPTS
+
         val finishedAt = System.currentTimeMillis()
         logDao.upsert(
             UploadLogEntity(
@@ -81,8 +86,12 @@ class UploadWorker(
                 ruleId = rule.id,
                 mediaUri = mediaUriString,
                 fileName = mediaFile.displayName,
-                status = if (uploadResult is UploadResult.Success) UploadStatus.SUCCESS else UploadStatus.FAILED,
-                errorMessage = (uploadResult as? UploadResult.Failure)?.message,
+                status = when {
+                    uploadResult is UploadResult.Success -> UploadStatus.SUCCESS
+                    willRetry -> UploadStatus.PENDING
+                    else -> UploadStatus.FAILED
+                },
+                errorMessage = (uploadResult as? UploadResult.Failure)?.takeUnless { willRetry }?.message,
                 remoteId = (uploadResult as? UploadResult.Success)?.remoteId,
                 attemptCount = runAttemptCount + 1,
                 createdAt = existingLog?.createdAt ?: startedAt,
@@ -92,12 +101,15 @@ class UploadWorker(
 
         return when (uploadResult) {
             is UploadResult.Success -> Result.success()
-            is UploadResult.Failure -> if (uploadResult.retryable) Result.retry() else Result.failure()
+            is UploadResult.Failure -> if (willRetry) Result.retry() else Result.failure()
         }
     }
 
     companion object {
         const val KEY_RULE_ID = "rule_id"
         const val KEY_MEDIA_URI = "media_uri"
+
+        /** Cuántas veces reintentar un fallo transitorio antes de darlo por perdido de verdad. */
+        private const val MAX_RETRY_ATTEMPTS = 5
     }
 }
