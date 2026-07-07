@@ -5,8 +5,10 @@ import android.net.Uri
 import com.santiagojorda.mediasync.data.local.dao.RuleDao
 import com.santiagojorda.mediasync.data.local.dao.UploadLogDao
 import com.santiagojorda.mediasync.data.local.toDomain
+import com.santiagojorda.mediasync.data.local.toEntity
 import androidx.work.ExistingWorkPolicy
 import com.santiagojorda.mediasync.domain.model.UploadLogEntry
+import com.santiagojorda.mediasync.domain.model.UploadStatus
 import com.santiagojorda.mediasync.work.UploadWorkScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -59,5 +61,17 @@ class UploadLogRepository(
     suspend fun markSourceDeleted(entries: List<UploadLogEntry>) {
         if (entries.isEmpty()) return
         uploadLogDao.markSourceDeleted(entries.map { it.id })
+    }
+
+    /** Cancela una subida en curso (o encolada) y la marca como error, no como si nunca hubiera pasado nada. */
+    suspend fun cancel(entry: UploadLogEntry) {
+        UploadWorkScheduler.cancel(context, entry.ruleId, Uri.parse(entry.mediaUri))
+        uploadLogDao.upsert(
+            entry.copy(
+                status = UploadStatus.FAILED,
+                errorMessage = "Cancelado por el usuario",
+                updatedAt = System.currentTimeMillis(),
+            ).toEntity(),
+        )
     }
 }

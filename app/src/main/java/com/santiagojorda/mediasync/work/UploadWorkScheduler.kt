@@ -46,6 +46,13 @@ object UploadWorkScheduler {
         // Por archivo (no por regla): las subidas de una misma regla corren en paralelo. La
         // condición de carrera que esto causaba en Google Photos (crear el álbum duplicado) se
         // arregló del lado de GooglePhotosUploader con un Mutex + re-chequeo en la base, no acá.
-        WorkManager.getInstance(context).enqueueUniqueWork("upload-$ruleId-$mediaUri", policy, request)
+        WorkManager.getInstance(context).enqueueUniqueWork(uniqueWorkName(ruleId, mediaUri), policy, request)
     }
+
+    /** Cancela el work "vivo" (encolado o corriendo) de este archivo, si hay alguno. */
+    fun cancel(context: Context, ruleId: Long, mediaUri: Uri) {
+        WorkManager.getInstance(context).cancelUniqueWork(uniqueWorkName(ruleId, mediaUri))
+    }
+
+    private fun uniqueWorkName(ruleId: Long, mediaUri: Uri) = "upload-$ruleId-$mediaUri"
 }

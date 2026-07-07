@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -31,9 +32,9 @@ fun HistoryScreen(
     viewModel: HistoryViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val logs by viewModel.logs.collectAsState()
+    val groups by viewModel.groups.collectAsState()
 
-    if (logs.isEmpty()) {
+    if (groups.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 text = "Todavía no se procesó ningún archivo.",
@@ -45,14 +46,29 @@ fun HistoryScreen(
     }
 
     LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(logs, key = { it.id }) { entry ->
-            HistoryRow(entry = entry, onRetry = { viewModel.retry(entry) })
+        groups.forEach { group ->
+            item(key = "header-${group.ruleId}") {
+                Text(
+                    text = group.folderName,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+            items(group.entries, key = { it.id }) { entry ->
+                HistoryRow(
+                    entry = entry,
+                    onRetry = { viewModel.retry(entry) },
+                    onCancel = { viewModel.cancel(entry) },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun HistoryRow(entry: UploadLogEntry, onRetry: () -> Unit) {
+private fun HistoryRow(entry: UploadLogEntry, onRetry: () -> Unit, onCancel: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -76,10 +92,14 @@ private fun HistoryRow(entry: UploadLogEntry, onRetry: () -> Unit) {
                     )
                 }
             }
-            if (entry.status == UploadStatus.FAILED || entry.status == UploadStatus.UPLOADING) {
-                IconButton(onClick = onRetry) {
+            when (entry.status) {
+                UploadStatus.UPLOADING -> IconButton(onClick = onCancel) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Cancelar subida")
+                }
+                UploadStatus.FAILED -> IconButton(onClick = onRetry) {
                     Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reintentar")
                 }
+                else -> Unit
             }
         }
     }

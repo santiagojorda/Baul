@@ -159,7 +159,7 @@ fun MediaSyncApp() {
             composable(MediaSyncDestinations.HISTORY) {
                 val viewModel: HistoryViewModel = viewModel(
                     factory = viewModelFactory {
-                        initializer { HistoryViewModel(app.uploadLogRepository) }
+                        initializer { HistoryViewModel(app.uploadLogRepository, app.ruleRepository) }
                     },
                 )
                 HistoryScreen(viewModel = viewModel)
