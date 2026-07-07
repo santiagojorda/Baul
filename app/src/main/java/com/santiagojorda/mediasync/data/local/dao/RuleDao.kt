@@ -17,8 +17,8 @@ interface RuleDao {
     @Query("SELECT * FROM rules WHERE id = :id")
     suspend fun getRuleById(id: Long): RuleEntity?
 
-    @Query("SELECT * FROM rules WHERE folderUri = :folderUri AND isActive = 1")
-    suspend fun getActiveRulesForFolder(folderUri: String): List<RuleEntity>
+    @Query("SELECT * FROM rules WHERE isActive = 1")
+    suspend fun getActiveRules(): List<RuleEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(rule: RuleEntity): Long

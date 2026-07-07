@@ -18,6 +18,12 @@ interface UploadLogDao {
     @Query("SELECT * FROM upload_log WHERE status = :status")
     suspend fun getByStatus(status: UploadStatus): List<UploadLogEntity>
 
+    @Query(
+        "SELECT * FROM upload_log WHERE ruleId = :ruleId AND mediaUri = :mediaUri " +
+            "ORDER BY createdAt DESC LIMIT 1",
+    )
+    suspend fun getLogForMedia(ruleId: Long, mediaUri: String): UploadLogEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entry: UploadLogEntity): Long
 
