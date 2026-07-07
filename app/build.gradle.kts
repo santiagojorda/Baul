@@ -34,7 +34,19 @@ android {
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Los clientes de Google (google-api-client, google-http-client, google-auth-library,
+            // guava, grpc-context, etc.) traen jars con licencias/manifiestos duplicados.
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/INDEX.LIST",
+                "/META-INF/DEPENDENCIES",
+                "/META-INF/LICENSE",
+                "/META-INF/LICENSE.txt",
+                "/META-INF/LICENSE.md",
+                "/META-INF/NOTICE",
+                "/META-INF/NOTICE.txt",
+                "/META-INF/NOTICE.md",
+            )
         }
     }
 }
