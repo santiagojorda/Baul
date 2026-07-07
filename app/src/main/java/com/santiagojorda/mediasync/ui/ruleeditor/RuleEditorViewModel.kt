@@ -42,8 +42,9 @@ class RuleEditorViewModel(
         }
     }
 
+    /** Elegir una carpeta a mano convierte la regla en explícita: se pisa folderRelativePath. */
     fun onFolderPicked(uri: String, displayName: String) =
-        _uiState.update { it.copy(folderUri = uri, folderDisplayName = displayName) }
+        _uiState.update { it.copy(folderUri = uri, folderDisplayName = displayName, folderRelativePath = null) }
 
     fun onDestinationTypeChanged(type: DestinationType) = _uiState.update { it.copy(destinationType = type) }
 
@@ -58,7 +59,8 @@ class RuleEditorViewModel(
 
     fun onYouTubeTagsChanged(value: String) = _uiState.update { it.copy(youTubeTags = value) }
 
-    fun onPhotosAlbumNameChanged(value: String) = _uiState.update { it.copy(photosAlbumName = value) }
+    /** Si el usuario cambia el nombre a mano, se despega del álbum ya asociado (id viejo). */
+    fun onPhotosAlbumNameChanged(value: String) = _uiState.update { it.copy(photosAlbumName = value, photosAlbumId = null) }
 
     fun onDriveFolderIdChanged(value: String) = _uiState.update { it.copy(driveFolderId = value) }
 
@@ -68,13 +70,12 @@ class RuleEditorViewModel(
 
     fun save() {
         val state = _uiState.value
-        val folderUri = state.folderUri ?: return
         if (!state.canSave) return
 
         viewModelScope.launch {
             val rule = Rule(
                 id = ruleId ?: 0,
-                folderUri = folderUri,
+                folderUri = state.folderUri ?: "",
                 folderDisplayName = state.folderDisplayName,
                 destinationType = state.destinationType,
                 googleAccountEmail = state.googleAccountEmail,
@@ -87,7 +88,7 @@ class RuleEditorViewModel(
                     )
                 } else null,
                 googlePhotosMetadata = if (state.destinationType == DestinationType.GOOGLE_PHOTOS) {
-                    GooglePhotosMetadata(albumName = state.photosAlbumName)
+                    GooglePhotosMetadata(albumId = state.photosAlbumId, albumName = state.photosAlbumName)
                 } else null,
                 driveMetadata = if (state.destinationType == DestinationType.DRIVE) {
                     DriveMetadata(destinationFolderId = state.driveFolderId)
@@ -96,6 +97,8 @@ class RuleEditorViewModel(
                 wifiOnly = state.wifiOnly,
                 isActive = state.isActive,
                 createdAt = state.createdAt,
+                folderRelativePath = state.folderRelativePath,
+                isAutoCreated = state.folderRelativePath != null,
             )
             val savedId = ruleRepository.save(rule)
             mediaSyncCoordinator.backfillRule(savedId)

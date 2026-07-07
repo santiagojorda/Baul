@@ -28,16 +28,24 @@ data class RuleEditorUiState(
     val createdAt: Long = System.currentTimeMillis(),
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
+    /**
+     * Solo presente en reglas auto-creadas (ver AutoSyncFolderPolicy) que todavía no tuvieron un
+     * folderUri elegido a mano. Permite guardar cambios (por ej. activar "borrar original") sin
+     * forzar a re-elegir la carpeta por SAF. Si el usuario elige una carpeta nueva
+     * ([RuleEditorViewModel.onFolderPicked]), esto se limpia: pasa a ser una regla explícita.
+     */
+    val folderRelativePath: String? = null,
+    /** Se preserva al editar, para no pisar con null el álbum ya creado y forzar uno nuevo. */
+    val photosAlbumId: String? = null,
 ) {
     val canSave: Boolean
-        // folderUri puede ser "" (no null) en una regla auto-creada por carpeta (ver
-        // AutoSyncFolderPolicy): sin una carpeta SAF elegida a mano no se puede guardar, para no
-        // pisar el folderRelativePath que la hacía funcionar.
-        get() = !folderUri.isNullOrBlank() && googleAccountEmail.isNotBlank() && when (destinationType) {
-            DestinationType.YOUTUBE -> youTubeChannelId.isNotBlank()
-            DestinationType.GOOGLE_PHOTOS -> photosAlbumName.isNotBlank()
-            DestinationType.DRIVE -> driveFolderId.isNotBlank()
-        }
+        get() = (!folderUri.isNullOrBlank() || folderRelativePath != null) &&
+            googleAccountEmail.isNotBlank() &&
+            when (destinationType) {
+                DestinationType.YOUTUBE -> youTubeChannelId.isNotBlank()
+                DestinationType.GOOGLE_PHOTOS -> photosAlbumName.isNotBlank()
+                DestinationType.DRIVE -> driveFolderId.isNotBlank()
+            }
 }
 
 fun Rule.toEditorUiState(): RuleEditorUiState = RuleEditorUiState(
@@ -55,4 +63,6 @@ fun Rule.toEditorUiState(): RuleEditorUiState = RuleEditorUiState(
     wifiOnly = wifiOnly,
     isActive = isActive,
     createdAt = createdAt,
+    folderRelativePath = folderRelativePath,
+    photosAlbumId = googlePhotosMetadata?.albumId,
 )

@@ -88,12 +88,36 @@ class GooglePhotosUploader(
             val freshAlbumId = freshRule?.googlePhotosMetadata?.albumId
             if (freshAlbumId != null) return@withLock freshAlbumId
 
-            val createdId = createAlbum(albumName, accessToken)
+            // Dos reglas distintas (dos carpetas) pueden pedir el mismo nombre de álbum: buscar
+            // primero por nombre entre los álbumes que ya creó esta app (el scope appendonly solo
+            // deja ver esos) antes de crear uno nuevo, para no terminar con dos álbumes iguales.
+            val resolvedId = findExistingAlbumId(albumName, accessToken) ?: createAlbum(albumName, accessToken)
             freshRule?.let {
-                ruleRepository.save(it.copy(googlePhotosMetadata = it.googlePhotosMetadata?.copy(albumId = createdId)))
+                ruleRepository.save(it.copy(googlePhotosMetadata = it.googlePhotosMetadata?.copy(albumId = resolvedId)))
             }
-            createdId
+            resolvedId
         }
+    }
+
+    private fun findExistingAlbumId(name: String, accessToken: String): String? {
+        var pageToken: String? = null
+        do {
+            val url = buildString {
+                append(ALBUMS_URL)
+                append("?pageSize=50")
+                if (pageToken != null) append("&pageToken=").append(pageToken)
+            }
+            val response = getJson(url, accessToken)
+            val albums = response.optJSONArray("albums")
+            if (albums != null) {
+                for (i in 0 until albums.length()) {
+                    val album = albums.getJSONObject(i)
+                    if (album.optString("title") == name) return album.getString("id")
+                }
+            }
+            pageToken = response.optString("nextPageToken").ifEmpty { null }
+        } while (pageToken != null)
+        return null
     }
 
     private fun uploadBytes(file: MediaFile, accessToken: String): String {
@@ -142,6 +166,25 @@ class GooglePhotosUploader(
             throw PhotosApiException(message ?: "La Photos Library API rechazó el ítem", retryable = isQuotaError)
         }
         return result.getJSONObject("mediaItem").getString("id")
+    }
+
+    private fun getJson(url: String, accessToken: String): JSONObject {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            setRequestProperty("Authorization", "Bearer $accessToken")
+        }
+        try {
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                throw PhotosApiException(
+                    "Error HTTP $code en ${url.substringAfterLast('/')}: ${connection.readError()}",
+                    retryable = isRetryableHttpCode(code),
+                )
+            }
+            return JSONObject(connection.inputStream.bufferedReader().readText())
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun postJson(url: String, body: JSONObject, accessToken: String): JSONObject {
