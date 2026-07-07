@@ -5,6 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import com.santiagojorda.mediasync.data.local.AppDatabase
+import com.santiagojorda.mediasync.data.repository.RuleRepository
+import com.santiagojorda.mediasync.data.repository.UploadLogRepository
 import com.santiagojorda.mediasync.media.MediaChangeObserver
 import com.santiagojorda.mediasync.media.MediaMetadataReader
 import com.santiagojorda.mediasync.media.MediaSyncCoordinator
@@ -16,12 +18,18 @@ class MediaSyncApplication : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    val database: AppDatabase by lazy { AppDatabase.getInstance(this) }
+    val ruleRepository: RuleRepository by lazy { RuleRepository(database.ruleDao()) }
+    val uploadLogRepository: UploadLogRepository by lazy {
+        UploadLogRepository(this, database.uploadLogDao(), database.ruleDao())
+    }
+
     override fun onCreate() {
         super.onCreate()
 
         val coordinator = MediaSyncCoordinator(
             context = this,
-            database = AppDatabase.getInstance(this),
+            database = database,
             metadataReader = MediaMetadataReader(contentResolver),
             scope = applicationScope,
         )
