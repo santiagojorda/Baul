@@ -109,7 +109,12 @@ fun MediaSyncApp() {
                     key = "rule_editor_$ruleId",
                     factory = viewModelFactory {
                         initializer {
-                            RuleEditorViewModel(app.ruleRepository, app.connectedAccountRepository, ruleId.takeIf { it != -1L })
+                            RuleEditorViewModel(
+                                app.ruleRepository,
+                                app.connectedAccountRepository,
+                                app.mediaSyncCoordinator,
+                                ruleId.takeIf { it != -1L },
+                            )
                         }
                     },
                 )

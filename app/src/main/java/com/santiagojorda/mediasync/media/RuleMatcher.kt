@@ -15,18 +15,22 @@ object RuleMatcher {
 
     fun matches(rule: RuleEntity, mediaRelativePath: String?): Boolean {
         if (mediaRelativePath == null) return false
+        val expected = expectedRelativePath(rule) ?: return false
+        return mediaRelativePath == expected
+    }
 
+    /** La ruta relativa (a la MediaStore) que se espera que reporten los archivos de [rule]. */
+    fun expectedRelativePath(rule: RuleEntity): String? {
         val treeUri = Uri.parse(rule.folderUri)
-        val docId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull() ?: return false
+        val docId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull() ?: return null
 
         val separatorIndex = docId.indexOf(':')
-        if (separatorIndex == -1) return false
+        if (separatorIndex == -1) return null
 
         val volume = docId.substring(0, separatorIndex)
-        if (volume != "primary") return false
+        if (volume != "primary") return null
 
         val folderPath = docId.substring(separatorIndex + 1).trim('/')
-        val expectedRelativePath = "$folderPath/"
-        return mediaRelativePath == expectedRelativePath
+        return "$folderPath/"
     }
 }

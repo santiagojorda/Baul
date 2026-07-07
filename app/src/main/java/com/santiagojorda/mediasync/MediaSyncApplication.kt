@@ -29,17 +29,19 @@ class MediaSyncApplication : Application() {
         ConnectedAccountRepository(database.connectedAccountDao())
     }
     val googleAuthManager: GoogleAuthManager by lazy { GoogleAuthManager(this) }
-
-    override fun onCreate() {
-        super.onCreate()
-
-        val coordinator = MediaSyncCoordinator(
+    val mediaSyncCoordinator: MediaSyncCoordinator by lazy {
+        MediaSyncCoordinator(
             context = this,
             database = database,
             metadataReader = MediaMetadataReader(contentResolver),
             scope = applicationScope,
         )
-        val mediaChangeObserver = MediaChangeObserver(Handler(Looper.getMainLooper()), coordinator::onMediaChanged)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+
+        val mediaChangeObserver = MediaChangeObserver(Handler(Looper.getMainLooper()), mediaSyncCoordinator::onMediaChanged)
 
         contentResolver.registerContentObserver(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, mediaChangeObserver)
         contentResolver.registerContentObserver(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, mediaChangeObserver)
