@@ -38,8 +38,8 @@ fun ExcludedFoldersScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            text = "El auto-sync a Google Photos ignora carpetas nuevas cuyo nombre empiece con \"_\", " +
-                "las de Cámara/Screenshots/WhatsApp/Telegram, y las que agregues acá.",
+            text = "El auto-sync a Google Photos solo mira carpetas dentro de DCIM. Ahí, ignora las que " +
+                "empiecen con \"_\", las de Cámara/Screenshots/WhatsApp/Telegram, y las que agregues acá.",
             style = MaterialTheme.typography.bodyMedium,
         )
 
