@@ -56,7 +56,13 @@ class UploadWorker(
             DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(applicationContext, app.connectedAccountRepository, app.ruleRepository)
             DestinationType.DRIVE -> DriveUploader()
         }
-        val uploadResult = destination.upload(mediaFile, rule)
+        // Cualquier excepción no contemplada por el uploader (una respuesta que no es el JSON
+        // esperado, etc.) tiene que terminar igual en un log FAILED, no cortar antes de escribirlo.
+        val uploadResult = try {
+            destination.upload(mediaFile, rule)
+        } catch (e: Exception) {
+            UploadResult.Failure(message = e.message ?: "Error inesperado: ${e::class.simpleName}", retryable = true)
+        }
 
         // TODO: si uploadResult es Success y rule.deleteSourceAfterUpload, disparar
         // MediaStore.createDeleteRequest. Requiere lanzar el IntentSender de confirmación desde

@@ -15,6 +15,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 /**
@@ -53,6 +54,8 @@ class GooglePhotosUploader(
             UploadResult.Failure(message = e.message ?: "Error de la Photos Library API", retryable = e.retryable)
         } catch (e: IOException) {
             UploadResult.Failure(message = e.message ?: "Error de red subiendo a Google Photos", retryable = true)
+        } catch (e: JSONException) {
+            UploadResult.Failure(message = "Respuesta inesperada de la Photos Library API: ${e.message}", retryable = true)
         }
     }
 
