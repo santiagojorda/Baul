@@ -34,7 +34,11 @@ sealed interface TokenResult {
  * siquiera en silencio, así que no sirve para una app de sync desatendida en background.
  * `GoogleAuthUtil.getToken` sí puede pedir un token fresco desde un Worker sin ninguna pantalla,
  * salvo el caso raro de que el usuario haya revocado el acceso (ahí sí hace falta reautorizar).
+ *
+ * Google marca GoogleSignInClient/GoogleAuthUtil como deprecados a favor de Credential Manager +
+ * AuthorizationClient; el @Suppress de acá abajo es a propósito, no un descuido.
  */
+@Suppress("DEPRECATION")
 class GoogleAuthManager(private val context: Context) {
 
     private fun signInOptions(): GoogleSignInOptions =
