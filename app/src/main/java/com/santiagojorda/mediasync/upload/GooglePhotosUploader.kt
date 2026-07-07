@@ -15,7 +15,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
@@ -27,9 +29,10 @@ import org.json.JSONObject
  * (el `google-photos-library-client` oficial es para server/desktop, trae gRPC y de más).
  *
  * Flujo de 2-3 llamadas: subir los bytes crudos -> (opcional) resolver/crear álbum -> mediaItems:batchCreate.
- * La subida de bytes corre en paralelo entre archivos sin problema; solo "¿existe el álbum? si no,
- * crearlo" se serializa con [albumMutex] (releyendo la regla al tomar el lock) para que dos subidas
- * concurrentes de la misma regla no terminen creando dos álbumes iguales.
+ * Como máximo [uploadSemaphore] archivos a la vez (la API tiene un límite de escrituras
+ * concurrentes por cuenta). Dentro de eso, "¿existe el álbum? si no, crearlo" además se serializa
+ * con [albumMutex] (releyendo la regla al tomar el lock) para que dos subidas de la misma regla no
+ * terminen creando dos álbumes iguales.
  */
 class GooglePhotosUploader(
     private val context: Context,
@@ -56,10 +59,15 @@ class GooglePhotosUploader(
         }
 
         try {
-            val uploadToken = uploadBytes(file, accessToken)
-            val albumId = resolveAlbumId(rule, accessToken)
-            val mediaItemId = createMediaItem(uploadToken, albumId, accessToken)
-            UploadResult.Success(remoteId = mediaItemId)
+            // La API tiene un límite de escrituras concurrentes por cuenta: si el auto-sync o un
+            // backfill grande dispara muchos archivos juntos, sin este tope se pisan entre sí y
+            // Google devuelve "quota exceeded for concurrent write requests".
+            uploadSemaphore.withPermit {
+                val uploadToken = uploadBytes(file, accessToken)
+                val albumId = resolveAlbumId(rule, accessToken)
+                val mediaItemId = createMediaItem(uploadToken, albumId, accessToken)
+                UploadResult.Success(remoteId = mediaItemId)
+            }
         } catch (e: PhotosApiException) {
             UploadResult.Failure(message = e.message ?: "Error de la Photos Library API", retryable = e.retryable)
         } catch (e: IOException) {
@@ -105,7 +113,7 @@ class GooglePhotosUploader(
 
             val code = connection.responseCode
             if (code != HttpURLConnection.HTTP_OK) {
-                throw PhotosApiException("Fallo la subida de bytes (HTTP $code): ${connection.readError()}", retryable = code >= 500)
+                throw PhotosApiException("Fallo la subida de bytes (HTTP $code): ${connection.readError()}", retryable = isRetryableHttpCode(code))
             }
             return connection.inputStream.bufferedReader().readText()
         } finally {
@@ -130,7 +138,8 @@ class GooglePhotosUploader(
         val statusCode = result.optJSONObject("status")?.optInt("code", 0) ?: 0
         if (statusCode != 0) {
             val message = result.optJSONObject("status")?.optString("message")
-            throw PhotosApiException(message ?: "La Photos Library API rechazó el ítem", retryable = false)
+            val isQuotaError = message?.contains("quota", ignoreCase = true) == true
+            throw PhotosApiException(message ?: "La Photos Library API rechazó el ítem", retryable = isQuotaError)
         }
         return result.getJSONObject("mediaItem").getString("id")
     }
@@ -146,7 +155,10 @@ class GooglePhotosUploader(
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val code = connection.responseCode
             if (code !in 200..299) {
-                throw PhotosApiException("Error HTTP $code en ${url.substringAfterLast('/')}: ${connection.readError()}", retryable = code >= 500)
+                throw PhotosApiException(
+                    "Error HTTP $code en ${url.substringAfterLast('/')}: ${connection.readError()}",
+                    retryable = isRetryableHttpCode(code),
+                )
             }
             return JSONObject(connection.inputStream.bufferedReader().readText())
         } finally {
@@ -155,6 +167,9 @@ class GooglePhotosUploader(
     }
 
     private fun HttpURLConnection.readError(): String? = errorStream?.bufferedReader()?.readText()
+
+    /** 429 (rate limit / cuota) es transitorio igual que un 5xx: vale la pena reintentar con backoff. */
+    private fun isRetryableHttpCode(code: Int): Boolean = code >= 500 || code == 429
 
     private class PhotosApiException(message: String, val retryable: Boolean) : Exception(message)
 
@@ -166,5 +181,9 @@ class GooglePhotosUploader(
         /** Comparte el lock entre todas las instancias/Workers del proceso: la creación de un
          *  álbum es rara y barata, no hace falta un lock por regla. */
         val albumMutex = Mutex()
+
+        /** Tope de subidas simultáneas a la Photos Library API por proceso, para no pisar la
+         *  cuota de escrituras concurrentes cuando el auto-sync o un backfill mandan varias juntas. */
+        val uploadSemaphore = Semaphore(permits = 3)
     }
 }
