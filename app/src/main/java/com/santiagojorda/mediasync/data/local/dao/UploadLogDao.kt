@@ -18,6 +18,12 @@ interface UploadLogDao {
     @Query("SELECT * FROM upload_log WHERE status = :status")
     suspend fun getByStatus(status: UploadStatus): List<UploadLogEntity>
 
+    @Query("SELECT * FROM upload_log WHERE status = 'SUCCESS' AND sourceDeleted = 0")
+    suspend fun getSuccessfulNotYetDeleted(): List<UploadLogEntity>
+
+    @Query("UPDATE upload_log SET sourceDeleted = 1 WHERE id IN (:ids)")
+    suspend fun markSourceDeleted(ids: List<Long>)
+
     @Query(
         "SELECT * FROM upload_log WHERE ruleId = :ruleId AND mediaUri = :mediaUri " +
             "ORDER BY createdAt DESC LIMIT 1",

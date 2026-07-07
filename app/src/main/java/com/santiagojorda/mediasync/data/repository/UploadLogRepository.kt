@@ -35,4 +35,15 @@ class UploadLogRepository(
             policy = ExistingWorkPolicy.REPLACE,
         )
     }
+
+    /** Subidas OK cuya regla pide borrar el original y todavía no se le pidió confirmación al usuario. */
+    suspend fun getPendingDeletions(): List<UploadLogEntry> =
+        uploadLogDao.getSuccessfulNotYetDeleted()
+            .filter { entry -> ruleDao.getRuleById(entry.ruleId)?.deleteSourceAfterUpload == true }
+            .map { it.toDomain() }
+
+    suspend fun markSourceDeleted(entries: List<UploadLogEntry>) {
+        if (entries.isEmpty()) return
+        uploadLogDao.markSourceDeleted(entries.map { it.id })
+    }
 }

@@ -14,6 +14,7 @@ fun UploadLogEntity.toDomain(): UploadLogEntry = UploadLogEntry(
     attemptCount = attemptCount,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    sourceDeleted = sourceDeleted,
 )
 
 fun UploadLogEntry.toEntity(): UploadLogEntity = UploadLogEntity(
@@ -27,4 +28,5 @@ fun UploadLogEntry.toEntity(): UploadLogEntity = UploadLogEntity(
     attemptCount = attemptCount,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    sourceDeleted = sourceDeleted,
 )

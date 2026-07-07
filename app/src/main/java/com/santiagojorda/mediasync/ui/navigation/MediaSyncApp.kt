@@ -1,5 +1,11 @@
 package com.santiagojorda.mediasync.ui.navigation
 
+import android.app.Activity
+import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -13,7 +19,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.initializer
@@ -28,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.santiagojorda.mediasync.MediaSyncApplication
+import com.santiagojorda.mediasync.domain.model.UploadLogEntry
 import com.santiagojorda.mediasync.ui.accounts.AccountsScreen
 import com.santiagojorda.mediasync.ui.accounts.AccountsViewModel
 import com.santiagojorda.mediasync.ui.history.HistoryScreen
@@ -36,15 +48,19 @@ import com.santiagojorda.mediasync.ui.rulelist.RuleListScreen
 import com.santiagojorda.mediasync.ui.rulelist.RuleListViewModel
 import com.santiagojorda.mediasync.ui.ruleeditor.RuleEditorScreen
 import com.santiagojorda.mediasync.ui.ruleeditor.RuleEditorViewModel
+import kotlinx.coroutines.launch
 
 private val bottomBarRoutes = setOf(MediaSyncDestinations.RULE_LIST, MediaSyncDestinations.HISTORY, MediaSyncDestinations.ACCOUNTS)
 
 @Composable
 fun MediaSyncApp() {
     val navController = rememberNavController()
-    val app = LocalContext.current.applicationContext as MediaSyncApplication
+    val context = LocalContext.current
+    val app = context.applicationContext as MediaSyncApplication
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    DeleteUploadedSourcesEffect(app)
 
     Scaffold(
         bottomBar = {
@@ -145,5 +161,37 @@ private fun NavController.navigateToBottomBarRoute(route: String) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+/**
+ * El borrado del original necesita confirmación del sistema (Activity), no lo puede hacer el
+ * UploadWorker solo en background. Al abrir la app, si hay archivos subidos con éxito cuya regla
+ * pide borrar el original y todavía no se confirmó, se pide todo junto en un solo diálogo.
+ */
+@Composable
+private fun DeleteUploadedSourcesEffect(app: MediaSyncApplication) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val scope = rememberCoroutineScope()
+    var pendingEntries by remember { mutableStateOf<List<UploadLogEntry>>(emptyList()) }
+
+    val deleteLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scope.launch { app.uploadLogRepository.markSourceDeleted(pendingEntries) }
+        }
+        pendingEntries = emptyList()
+    }
+
+    LaunchedEffect(Unit) {
+        val pending = app.uploadLogRepository.getPendingDeletions()
+        if (pending.isNotEmpty() && activity != null) {
+            pendingEntries = pending
+            val uris = pending.map { Uri.parse(it.mediaUri) }
+            val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
+            deleteLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
+        }
     }
 }

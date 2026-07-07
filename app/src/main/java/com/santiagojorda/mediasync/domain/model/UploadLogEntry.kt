@@ -11,4 +11,5 @@ data class UploadLogEntry(
     val attemptCount: Int = 0,
     val createdAt: Long,
     val updatedAt: Long,
+    val sourceDeleted: Boolean = false,
 )

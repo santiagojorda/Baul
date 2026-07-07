@@ -69,10 +69,10 @@ class UploadWorker(
             UploadResult.Failure(message = e.message ?: "Error inesperado: ${e::class.simpleName}", retryable = true)
         }
 
-        // TODO: si uploadResult es Success y rule.deleteSourceAfterUpload, disparar
-        // MediaStore.createDeleteRequest. Requiere lanzar el IntentSender de confirmación desde
-        // una Activity (Activity Result API): no se puede hacer desde un Worker en background.
-        // Se resuelve junto con la UI de reglas/historial.
+        // El borrado del original (si rule.deleteSourceAfterUpload) no se dispara acá: necesita
+        // confirmación del sistema vía IntentSender, y este Worker no tiene Activity. En cambio,
+        // se marca la subida como SUCCESS/sourceDeleted=false, y DeleteUploadedSourcesEffect (en
+        // MediaSyncApp) revisa los pendientes y pide la confirmación la próxima vez que se abre la app.
 
         val finishedAt = System.currentTimeMillis()
         logDao.upsert(

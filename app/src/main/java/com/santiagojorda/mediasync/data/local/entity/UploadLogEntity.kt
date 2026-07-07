@@ -29,4 +29,6 @@ data class UploadLogEntity(
     val attemptCount: Int = 0,
     val createdAt: Long,
     val updatedAt: Long,
+    /** El borrado necesita confirmación del sistema (Activity), no lo puede hacer el Worker solo. */
+    val sourceDeleted: Boolean = false,
 )
