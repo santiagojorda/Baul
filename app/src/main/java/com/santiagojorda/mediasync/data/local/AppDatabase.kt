@@ -39,7 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // Pre-lanzamiento, sin usuarios reales todavía: mientras el esquema siga
                     // cambiando seguido, mejor recrear la base que escribir Migrations a mano.
                     // Sacar esto y agregar Migration reales antes de tener datos que importen.
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { instance = it }
             }
