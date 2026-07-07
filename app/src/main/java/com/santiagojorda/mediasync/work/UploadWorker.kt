@@ -8,7 +8,6 @@ import com.santiagojorda.mediasync.MediaSyncApplication
 import com.santiagojorda.mediasync.data.local.AppDatabase
 import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
 import com.santiagojorda.mediasync.data.local.toDomain
-import com.santiagojorda.mediasync.data.local.toEntity
 import com.santiagojorda.mediasync.domain.model.DestinationType
 import com.santiagojorda.mediasync.domain.model.UploadStatus
 import com.santiagojorda.mediasync.domain.upload.UploadResult
@@ -54,17 +53,10 @@ class UploadWorker(
         val app = applicationContext as MediaSyncApplication
         val destination = when (rule.destinationType) {
             DestinationType.YOUTUBE -> YouTubeUploader()
-            DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(applicationContext, app.connectedAccountRepository)
+            DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(applicationContext, app.connectedAccountRepository, app.ruleRepository)
             DestinationType.DRIVE -> DriveUploader()
         }
         val uploadResult = destination.upload(mediaFile, rule)
-
-        if (uploadResult is UploadResult.Success && uploadResult.remoteAlbumId != null) {
-            val updatedRule = rule.copy(
-                googlePhotosMetadata = rule.googlePhotosMetadata?.copy(albumId = uploadResult.remoteAlbumId),
-            )
-            database.ruleDao().upsert(updatedRule.toEntity())
-        }
 
         // TODO: si uploadResult es Success y rule.deleteSourceAfterUpload, disparar
         // MediaStore.createDeleteRequest. Requiere lanzar el IntentSender de confirmación desde

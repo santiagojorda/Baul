@@ -2,6 +2,7 @@ package com.santiagojorda.mediasync.upload
 
 import android.content.Context
 import com.santiagojorda.mediasync.data.repository.ConnectedAccountRepository
+import com.santiagojorda.mediasync.data.repository.RuleRepository
 import com.santiagojorda.mediasync.domain.model.Rule
 import com.santiagojorda.mediasync.domain.upload.Destination
 import com.santiagojorda.mediasync.domain.upload.MediaFile
@@ -10,6 +11,8 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,12 +22,15 @@ import org.json.JSONObject
  * usar un cliente Java oficial: Google no publica uno liviano apto para Android para esta API
  * (el `google-photos-library-client` oficial es para server/desktop, trae gRPC y de más).
  *
- * Flujo de 2-3 llamadas: subir los bytes crudos -> (opcional) crear álbum si hace falta ->
- * mediaItems:batchCreate referenciando el upload token.
+ * Flujo de 2-3 llamadas: subir los bytes crudos -> (opcional) resolver/crear álbum -> mediaItems:batchCreate.
+ * La subida de bytes corre en paralelo entre archivos sin problema; solo "¿existe el álbum? si no,
+ * crearlo" se serializa con [albumMutex] (releyendo la regla al tomar el lock) para que dos subidas
+ * concurrentes de la misma regla no terminen creando dos álbumes iguales.
  */
 class GooglePhotosUploader(
     private val context: Context,
     private val connectedAccountRepository: ConnectedAccountRepository,
+    private val ruleRepository: RuleRepository,
 ) : Destination {
 
     override suspend fun upload(file: MediaFile, rule: Rule): UploadResult = withContext(Dispatchers.IO) {
@@ -40,22 +46,32 @@ class GooglePhotosUploader(
 
         try {
             val uploadToken = uploadBytes(file, accessToken)
-
-            val existingAlbumId = rule.googlePhotosMetadata?.albumId
-            val albumName = rule.googlePhotosMetadata?.albumName
-            val albumId = when {
-                existingAlbumId != null -> existingAlbumId
-                !albumName.isNullOrBlank() -> createAlbum(albumName, accessToken)
-                else -> null
-            }
-
+            val albumId = resolveAlbumId(rule, accessToken)
             val mediaItemId = createMediaItem(uploadToken, albumId, accessToken)
-            val discoveredAlbumId = if (existingAlbumId == null && albumId != null) albumId else null
-            UploadResult.Success(remoteId = mediaItemId, remoteAlbumId = discoveredAlbumId)
+            UploadResult.Success(remoteId = mediaItemId)
         } catch (e: PhotosApiException) {
             UploadResult.Failure(message = e.message ?: "Error de la Photos Library API", retryable = e.retryable)
         } catch (e: IOException) {
             UploadResult.Failure(message = e.message ?: "Error de red subiendo a Google Photos", retryable = true)
+        }
+    }
+
+    private suspend fun resolveAlbumId(rule: Rule, accessToken: String): String? {
+        val albumName = rule.googlePhotosMetadata?.albumName
+        if (albumName.isNullOrBlank()) return rule.googlePhotosMetadata?.albumId
+
+        return albumMutex.withLock {
+            // Releer de la base al tomar el lock: otra subida concurrente de esta misma regla
+            // puede haber creado y persistido el álbum mientras esperábamos acá.
+            val freshRule = ruleRepository.getRuleById(rule.id)
+            val freshAlbumId = freshRule?.googlePhotosMetadata?.albumId
+            if (freshAlbumId != null) return@withLock freshAlbumId
+
+            val createdId = createAlbum(albumName, accessToken)
+            freshRule?.let {
+                ruleRepository.save(it.copy(googlePhotosMetadata = it.googlePhotosMetadata?.copy(albumId = createdId)))
+            }
+            createdId
         }
     }
 
@@ -133,5 +149,9 @@ class GooglePhotosUploader(
         const val UPLOAD_URL = "https://photoslibrary.googleapis.com/v1/uploads"
         const val ALBUMS_URL = "https://photoslibrary.googleapis.com/v1/albums"
         const val BATCH_CREATE_URL = "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate"
+
+        /** Comparte el lock entre todas las instancias/Workers del proceso: la creación de un
+         *  álbum es rara y barata, no hace falta un lock por regla. */
+        val albumMutex = Mutex()
     }
 }

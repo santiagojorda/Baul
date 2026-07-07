@@ -30,14 +30,12 @@ object UploadWorkScheduler {
             )
             .build()
 
-        // Encadenado por regla (no por archivo): si van varios archivos de la misma regla,
-        // los corre de a uno. Evita que dos subidas concurrentes lean la regla antes de que la
-        // primera guarde el albumId de Google Photos recién creado y terminen creando álbumes
-        // duplicados. Ver UploadWorker: cada worker relee la regla al empezar, así que el
-        // siguiente de la cadena ya ve el albumId que persistió el anterior.
+        // Por archivo (no por regla): las subidas de una misma regla corren en paralelo. La
+        // condición de carrera que esto causaba en Google Photos (crear el álbum duplicado) se
+        // arregló del lado de GooglePhotosUploader con un Mutex + re-chequeo en la base, no acá.
         WorkManager.getInstance(context).enqueueUniqueWork(
-            "upload-rule-$ruleId",
-            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            "upload-$ruleId-$mediaUri",
+            ExistingWorkPolicy.KEEP,
             request,
         )
     }
