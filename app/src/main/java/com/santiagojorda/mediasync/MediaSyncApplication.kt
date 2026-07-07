@@ -7,6 +7,7 @@ import android.provider.MediaStore
 import com.santiagojorda.mediasync.auth.GoogleAuthManager
 import com.santiagojorda.mediasync.data.local.AppDatabase
 import com.santiagojorda.mediasync.data.repository.ConnectedAccountRepository
+import com.santiagojorda.mediasync.data.repository.ExcludedFolderRepository
 import com.santiagojorda.mediasync.data.repository.RuleRepository
 import com.santiagojorda.mediasync.data.repository.UploadLogRepository
 import com.santiagojorda.mediasync.media.MediaChangeObserver
@@ -27,6 +28,9 @@ class MediaSyncApplication : Application() {
     }
     val connectedAccountRepository: ConnectedAccountRepository by lazy {
         ConnectedAccountRepository(database.connectedAccountDao())
+    }
+    val excludedFolderRepository: ExcludedFolderRepository by lazy {
+        ExcludedFolderRepository(database.excludedFolderDao())
     }
     val googleAuthManager: GoogleAuthManager by lazy { GoogleAuthManager(this) }
     val mediaSyncCoordinator: MediaSyncCoordinator by lazy {

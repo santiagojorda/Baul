@@ -10,14 +10,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +46,8 @@ import com.santiagojorda.mediasync.MediaSyncApplication
 import com.santiagojorda.mediasync.domain.model.UploadLogEntry
 import com.santiagojorda.mediasync.ui.accounts.AccountsScreen
 import com.santiagojorda.mediasync.ui.accounts.AccountsViewModel
+import com.santiagojorda.mediasync.ui.excludedfolders.ExcludedFoldersScreen
+import com.santiagojorda.mediasync.ui.excludedfolders.ExcludedFoldersViewModel
 import com.santiagojorda.mediasync.ui.history.HistoryScreen
 import com.santiagojorda.mediasync.ui.history.HistoryViewModel
 import com.santiagojorda.mediasync.ui.rulelist.RuleListScreen
@@ -52,6 +58,7 @@ import kotlinx.coroutines.launch
 
 private val bottomBarRoutes = setOf(MediaSyncDestinations.RULE_LIST, MediaSyncDestinations.HISTORY, MediaSyncDestinations.ACCOUNTS)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaSyncApp() {
     val navController = rememberNavController()
@@ -63,6 +70,18 @@ fun MediaSyncApp() {
     DeleteUploadedSourcesEffect(app)
 
     Scaffold(
+        topBar = {
+            if (currentRoute == MediaSyncDestinations.RULE_LIST) {
+                TopAppBar(
+                    title = { Text("Reglas") },
+                    actions = {
+                        IconButton(onClick = { navController.navigate(MediaSyncDestinations.EXCLUDED_FOLDERS) }) {
+                            Icon(Icons.Default.Block, contentDescription = "Carpetas excluidas del auto-sync")
+                        }
+                    },
+                )
+            }
+        },
         bottomBar = {
             if (currentRoute in bottomBarRoutes) {
                 NavigationBar {
@@ -151,6 +170,14 @@ fun MediaSyncApp() {
                     },
                 )
                 AccountsScreen(viewModel = viewModel)
+            }
+            composable(MediaSyncDestinations.EXCLUDED_FOLDERS) {
+                val viewModel: ExcludedFoldersViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer { ExcludedFoldersViewModel(app.excludedFolderRepository) }
+                    },
+                )
+                ExcludedFoldersScreen(viewModel = viewModel)
             }
         }
     }

@@ -51,7 +51,9 @@ class MediaSyncCoordinator(
      * terminar con dos reglas duplicadas para la misma carpeta.
      */
     private suspend fun maybeAutoCreateRule(relativePath: String?): RuleEntity? {
-        if (relativePath == null || AutoSyncFolderPolicy.isExcluded(relativePath)) return null
+        if (relativePath == null) return null
+        val customExclusions = database.excludedFolderDao().getAllNames().toSet()
+        if (AutoSyncFolderPolicy.isExcluded(relativePath, customExclusions)) return null
 
         return autoRuleCreationMutex.withLock {
             val activeRules = database.ruleDao().getActiveRules()
