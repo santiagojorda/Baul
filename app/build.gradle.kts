@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.google.api.client.android) {
         exclude(group = "org.apache.httpcomponents")
     }
+    implementation(libs.google.api.client.gson)
     implementation(libs.google.http.client.android)
     implementation(libs.google.api.services.youtube) {
         exclude(group = "org.apache.httpcomponents")

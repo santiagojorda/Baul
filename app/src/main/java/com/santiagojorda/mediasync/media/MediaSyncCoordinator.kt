@@ -7,7 +7,9 @@ import android.provider.MediaStore
 import com.santiagojorda.mediasync.data.local.AppDatabase
 import com.santiagojorda.mediasync.data.local.entity.RuleEntity
 import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
+import com.santiagojorda.mediasync.domain.model.DestinationType
 import com.santiagojorda.mediasync.domain.model.UploadStatus
+import com.santiagojorda.mediasync.domain.upload.MediaFile
 import com.santiagojorda.mediasync.work.UploadWorkScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -31,7 +33,7 @@ class MediaSyncCoordinator(
             val activeRules = database.ruleDao().getActiveRules()
             val matchedRule = activeRules.firstOrNull { RuleMatcher.matches(it, metadata.relativePath) }
                 ?: return@launch
-            dispatch(matchedRule, uri, metadata.mediaFile.displayName)
+            dispatch(matchedRule, uri, metadata.mediaFile)
         }
     }
 
@@ -41,13 +43,19 @@ class MediaSyncCoordinator(
             val rule = database.ruleDao().getRuleById(ruleId)?.takeIf { it.isActive } ?: return@launch
             queryExistingUris(rule).forEach { uri ->
                 val metadata = metadataReader.read(uri) ?: return@forEach
-                dispatch(rule, uri, metadata.mediaFile.displayName)
+                dispatch(rule, uri, metadata.mediaFile)
             }
         }
     }
 
-    /** Ya subido con éxito -> no repetir. Si no, se (re)encola: cubre pendientes, fallidos y archivos nuevos. */
-    private suspend fun dispatch(rule: RuleEntity, uri: Uri, fileName: String) {
+    /**
+     * Ya subido con éxito -> no repetir. Si no, se (re)encola: cubre pendientes, fallidos y
+     * archivos nuevos. Las reglas de YouTube ignoran directamente lo que no sea video (una foto
+     * en esa carpeta no tiene sentido subirla ahí).
+     */
+    private suspend fun dispatch(rule: RuleEntity, uri: Uri, mediaFile: MediaFile) {
+        if (rule.destinationType == DestinationType.YOUTUBE && !mediaFile.mimeType.startsWith("video/")) return
+
         val logDao = database.uploadLogDao()
         val existingLog = logDao.getLogForMedia(rule.id, uri.toString())
         if (existingLog?.status == UploadStatus.SUCCESS) return
@@ -58,7 +66,7 @@ class MediaSyncCoordinator(
                 UploadLogEntity(
                     ruleId = rule.id,
                     mediaUri = uri.toString(),
-                    fileName = fileName,
+                    fileName = mediaFile.displayName,
                     status = UploadStatus.PENDING,
                     createdAt = now,
                     updatedAt = now,
