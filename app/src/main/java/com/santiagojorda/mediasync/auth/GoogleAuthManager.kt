@@ -23,7 +23,7 @@ sealed interface SignInResult {
 sealed interface TokenResult {
     data class Success(val accessToken: String) : TokenResult
     /** Necesita que el usuario reautorice a mano (acceso revocado, contraseña cambiada, etc). */
-    data class NeedsReauth(val intent: Intent) : TokenResult
+    data class NeedsReauth(val intent: Intent?) : TokenResult
     data class Failure(val message: String, val retryable: Boolean) : TokenResult
 }
 
