@@ -69,7 +69,7 @@ class YouTubeUploader(
             val mediaContent = InputStreamContent(file.mimeType, inputStream).apply { length = file.sizeBytes }
 
             val insertedVideo = youtube.videos()
-                .insert("snippet,status", video, mediaContent)
+                .insert(listOf("snippet", "status"), video, mediaContent)
                 .execute()
 
             metadata.playlistId?.let { playlistId -> addToPlaylist(youtube, playlistId, insertedVideo.id) }
@@ -98,7 +98,7 @@ class YouTubeUploader(
                 }
             }
         }
-        youtube.playlistItems().insert("snippet", item).execute()
+        youtube.playlistItems().insert(listOf("snippet"), item).execute()
     }
 
     private fun buildClient(accessToken: String): YouTube {
