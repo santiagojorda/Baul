@@ -5,15 +5,16 @@ plugins {
 }
 
 android {
-    namespace = "com.santiagojorda.mediasync"
+    namespace = "com.santiagojorda.baul"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.santiagojorda.mediasync"
+        applicationId = "com.santiagojorda.baul"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -77,6 +78,8 @@ dependencies {
 
     implementation(libs.work.runtime.ktx)
 
+    implementation(libs.glance.appwidget)
+
     implementation(libs.play.services.auth)
 
     implementation(libs.google.api.client.android) {
@@ -93,4 +96,9 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
 }

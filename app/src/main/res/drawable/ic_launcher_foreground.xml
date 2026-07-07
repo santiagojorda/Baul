@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Cuerpo + tapa del baúl, un solo contorno -->
+    <path
+        android:pathData="M26,82 L26,50 L26,44 C26,30 82,30 82,44 L82,50 L82,82 Z"
+        android:fillColor="#E8B85C" />
+    <!-- Realce claro en la tapa -->
+    <path
+        android:pathData="M30,45 C30,34 78,34 78,45 L78,48 L30,48 Z"
+        android:fillColor="#F2CE8A" />
+    <!-- Tirantes -->
+    <path
+        android:pathData="M34,44 L40,44 L40,82 L34,82 Z"
+        android:fillColor="#3E2415" />
+    <path
+        android:pathData="M68,44 L74,44 L74,82 L68,82 Z"
+        android:fillColor="#3E2415" />
+    <!-- Cierre metalico sobre la costura tapa/cuerpo -->
+    <path
+        android:pathData="M46,45 L62,45 C64.2,45 66,46.8 66,49 L66,55 C66,57.2 64.2,59 62,59 L46,59 C43.8,59 42,57.2 42,55 L42,49 C42,46.8 43.8,45 46,45 Z"
+        android:fillColor="#3E2415" />
+    <!-- Ojo de cerradura -->
+    <path
+        android:pathData="M54,49.5 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0"
+        android:fillColor="#E8B85C" />
+    <path
+        android:pathData="M52.8,51.5 L55.2,51.5 L56,55.5 L52,55.5 Z"
+        android:fillColor="#E8B85C" />
+</vector>

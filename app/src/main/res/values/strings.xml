@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">MediaSync</string>
+    <string name="app_name">Baúl</string>
+    <string name="sync_status_widget_description">Estado de la sincronización</string>
 </resources>

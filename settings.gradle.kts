@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MediaSync"
+rootProject.name = "Baul"
 include(":app")
