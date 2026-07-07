@@ -7,4 +7,5 @@ import androidx.room.PrimaryKey
 data class ConnectedAccountEntity(
     @PrimaryKey val email: String,
     val displayName: String? = null,
+    val connectedAt: Long = System.currentTimeMillis(),
 )

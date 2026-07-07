@@ -28,4 +28,11 @@ data class RuleEntity(
     val wifiOnly: Boolean = true,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    /**
+     * Para reglas creadas automáticamente (ver AutoSyncFolderPolicy/MediaSyncCoordinator): no
+     * hay un árbol SAF elegido a mano, así que la ruta relativa a MediaStore se guarda directo
+     * acá en vez de derivarla de [folderUri] (que para estas reglas queda vacío).
+     */
+    val folderRelativePath: String? = null,
+    val isAutoCreated: Boolean = false,
 )

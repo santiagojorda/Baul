@@ -21,6 +21,9 @@ object RuleMatcher {
 
     /** La ruta relativa (a la MediaStore) que se espera que reporten los archivos de [rule]. */
     fun expectedRelativePath(rule: RuleEntity): String? {
+        // Reglas auto-creadas (ver AutoSyncFolderPolicy): no hay árbol SAF, la ruta ya viene resuelta.
+        rule.folderRelativePath?.let { return it }
+
         val treeUri = Uri.parse(rule.folderUri)
         val docId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull() ?: return null
 

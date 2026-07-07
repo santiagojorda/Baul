@@ -83,7 +83,7 @@ private fun RuleListRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.rule.folderDisplayName, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = destinationLabel(item.rule.destinationType),
+                    text = destinationLabel(item.rule.destinationType) + if (item.rule.isAutoCreated) " · automática" else "",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(

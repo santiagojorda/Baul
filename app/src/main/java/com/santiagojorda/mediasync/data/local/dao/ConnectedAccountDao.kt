@@ -17,6 +17,9 @@ interface ConnectedAccountDao {
     @Query("SELECT * FROM connected_accounts WHERE email = :email")
     suspend fun getByEmail(email: String): ConnectedAccountEntity?
 
+    @Query("SELECT * FROM connected_accounts ORDER BY connectedAt ASC LIMIT 1")
+    suspend fun getFirstConnected(): ConnectedAccountEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(account: ConnectedAccountEntity)
 

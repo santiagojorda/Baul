@@ -13,12 +13,15 @@ import com.santiagojorda.mediasync.domain.upload.MediaFile
 import com.santiagojorda.mediasync.work.UploadWorkScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Conecta el [MediaChangeObserver] con las reglas guardadas: por cada archivo nuevo,
  * busca la primera regla activa cuya carpeta matchea y despacha el [UploadWorkScheduler].
- * También se usa para el backfill: cuando se crea/edita una regla, sincronizar lo que ya
- * había en la carpeta antes de que existiera la regla.
+ * Si ninguna regla matchea, evalúa [AutoSyncFolderPolicy] para crear una regla automática a
+ * Google Photos (carpeta nueva, no excluida). También se usa para el backfill: cuando se
+ * crea/edita una regla, sincronizar lo que ya había en la carpeta antes de que existiera la regla.
  */
 class MediaSyncCoordinator(
     private val context: Context,
@@ -27,13 +30,50 @@ class MediaSyncCoordinator(
     private val scope: CoroutineScope,
 ) {
 
+    private val autoRuleCreationMutex = Mutex()
+
     fun onMediaChanged(uri: Uri) {
         scope.launch {
             val metadata = metadataReader.read(uri) ?: return@launch
             val activeRules = database.ruleDao().getActiveRules()
             val matchedRule = activeRules.firstOrNull { RuleMatcher.matches(it, metadata.relativePath) }
+                ?: maybeAutoCreateRule(metadata.relativePath)
                 ?: return@launch
             dispatch(matchedRule, uri, metadata.mediaFile)
+        }
+    }
+
+    /**
+     * Crea una regla automática a Google Photos (cuenta = la primera conectada) para una
+     * carpeta nueva sin regla propia, salvo que esté excluida por [AutoSyncFolderPolicy]. Todo
+     * bajo un lock: si dos archivos de la misma carpeta nueva llegan casi juntos, el segundo
+     * tiene que re-chequear (bajo el lock) que el primero no haya creado ya la regla, para no
+     * terminar con dos reglas duplicadas para la misma carpeta.
+     */
+    private suspend fun maybeAutoCreateRule(relativePath: String?): RuleEntity? {
+        if (relativePath == null || AutoSyncFolderPolicy.isExcluded(relativePath)) return null
+
+        return autoRuleCreationMutex.withLock {
+            val activeRules = database.ruleDao().getActiveRules()
+            activeRules.firstOrNull { RuleMatcher.matches(it, relativePath) }?.let { return@withLock it }
+
+            val account = database.connectedAccountDao().getFirstConnected() ?: return@withLock null
+            val folderName = AutoSyncFolderPolicy.folderDisplayName(relativePath)
+            val now = System.currentTimeMillis()
+            val newRule = RuleEntity(
+                folderUri = "",
+                folderRelativePath = relativePath,
+                folderDisplayName = folderName,
+                destinationType = DestinationType.GOOGLE_PHOTOS,
+                googleAccountEmail = account.email,
+                photosAlbumName = folderName,
+                deleteSourceAfterUpload = false,
+                wifiOnly = true,
+                isActive = true,
+                createdAt = now,
+                isAutoCreated = true,
+            )
+            newRule.copy(id = database.ruleDao().upsert(newRule))
         }
     }
 

@@ -30,7 +30,10 @@ data class RuleEditorUiState(
     val isSaved: Boolean = false,
 ) {
     val canSave: Boolean
-        get() = folderUri != null && googleAccountEmail.isNotBlank() && when (destinationType) {
+        // folderUri puede ser "" (no null) en una regla auto-creada por carpeta (ver
+        // AutoSyncFolderPolicy): sin una carpeta SAF elegida a mano no se puede guardar, para no
+        // pisar el folderRelativePath que la hacía funcionar.
+        get() = !folderUri.isNullOrBlank() && googleAccountEmail.isNotBlank() && when (destinationType) {
             DestinationType.YOUTUBE -> youTubeChannelId.isNotBlank()
             DestinationType.GOOGLE_PHOTOS -> photosAlbumName.isNotBlank()
             DestinationType.DRIVE -> driveFolderId.isNotBlank()

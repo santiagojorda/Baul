@@ -15,7 +15,7 @@ import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
 
 @Database(
     entities = [RuleEntity::class, UploadLogEntity::class, ConnectedAccountEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

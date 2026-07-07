@@ -7,4 +7,5 @@ package com.santiagojorda.mediasync.domain.model
 data class ConnectedAccount(
     val email: String,
     val displayName: String? = null,
+    val connectedAt: Long = System.currentTimeMillis(),
 )

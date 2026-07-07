@@ -32,6 +32,8 @@ fun RuleEntity.toDomain(): Rule = Rule(
     wifiOnly = wifiOnly,
     isActive = isActive,
     createdAt = createdAt,
+    folderRelativePath = folderRelativePath,
+    isAutoCreated = isAutoCreated,
 )
 
 fun Rule.toEntity(): RuleEntity = RuleEntity(
@@ -51,4 +53,6 @@ fun Rule.toEntity(): RuleEntity = RuleEntity(
     wifiOnly = wifiOnly,
     isActive = isActive,
     createdAt = createdAt,
+    folderRelativePath = folderRelativePath,
+    isAutoCreated = isAutoCreated,
 )

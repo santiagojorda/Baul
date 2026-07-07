@@ -18,6 +18,8 @@ data class Rule(
     val wifiOnly: Boolean = true,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    val folderRelativePath: String? = null,
+    val isAutoCreated: Boolean = false,
 )
 
 data class YouTubeMetadata(
