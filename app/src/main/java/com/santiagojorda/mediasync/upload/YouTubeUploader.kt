@@ -13,6 +13,9 @@ import com.google.api.services.youtube.model.ResourceId
 import com.google.api.services.youtube.model.Video
 import com.google.api.services.youtube.model.VideoSnippet
 import com.google.api.services.youtube.model.VideoStatus
+import com.santiagojorda.mediasync.auth.GoogleApiScopes
+import com.santiagojorda.mediasync.auth.GoogleAuthManager
+import com.santiagojorda.mediasync.auth.TokenResult
 import com.santiagojorda.mediasync.data.repository.ConnectedAccountRepository
 import com.santiagojorda.mediasync.domain.model.Rule
 import com.santiagojorda.mediasync.domain.upload.Destination
@@ -35,19 +38,27 @@ import kotlinx.coroutines.withContext
 class YouTubeUploader(
     private val context: Context,
     private val connectedAccountRepository: ConnectedAccountRepository,
+    private val authManager: GoogleAuthManager,
 ) : Destination {
 
     override suspend fun upload(file: MediaFile, rule: Rule): UploadResult = withContext(Dispatchers.IO) {
         val metadata = rule.youTubeMetadata
             ?: return@withContext UploadResult.Failure("La regla no tiene metadata de YouTube", retryable = false)
 
-        val account = connectedAccountRepository.getByEmail(rule.googleAccountEmail)
-        val accessToken = account?.accessToken
-        if (account == null || accessToken == null || !account.hasValidToken()) {
+        if (connectedAccountRepository.getByEmail(rule.googleAccountEmail) == null) {
             return@withContext UploadResult.Failure(
-                message = "La cuenta ${rule.googleAccountEmail} no tiene un acceso válido, hay que reconectarla",
+                message = "La cuenta ${rule.googleAccountEmail} ya no está conectada",
                 retryable = false,
             )
+        }
+
+        val accessToken = when (val tokenResult = authManager.getFreshAccessToken(rule.googleAccountEmail, GoogleApiScopes.ALL)) {
+            is TokenResult.Success -> tokenResult.accessToken
+            is TokenResult.NeedsReauth -> return@withContext UploadResult.Failure(
+                message = "La cuenta ${rule.googleAccountEmail} necesita que la reautorices a mano (abrí la app y reconectala)",
+                retryable = false,
+            )
+            is TokenResult.Failure -> return@withContext UploadResult.Failure(tokenResult.message, tokenResult.retryable)
         }
 
         try {

@@ -3,110 +3,80 @@ package com.santiagojorda.mediasync.auth
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.IntentSender
-import android.util.Base64
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
-import com.google.android.gms.auth.api.identity.AuthorizationRequest
-import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.GoogleAuthException
+import com.google.android.gms.auth.GoogleAuthUtil
+import com.google.android.gms.auth.UserRecoverableAuthException
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
-import com.santiagojorda.mediasync.R
-import java.security.SecureRandom
+import java.io.IOException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 sealed interface SignInResult {
     data class Success(val email: String, val displayName: String?) : SignInResult
     data class Failure(val message: String) : SignInResult
 }
 
-sealed interface AuthorizationOutcome {
-    data class Granted(val accessToken: String?, val grantedScopes: Set<String>) : AuthorizationOutcome
-    data class NeedsResolution(val intentSender: IntentSender, val grantedScopes: Set<String>) : AuthorizationOutcome
-    data class Failure(val message: String) : AuthorizationOutcome
+sealed interface TokenResult {
+    data class Success(val accessToken: String) : TokenResult
+    /** Necesita que el usuario reautorice a mano (acceso revocado, contraseña cambiada, etc). */
+    data class NeedsReauth(val intent: Intent) : TokenResult
+    data class Failure(val message: String, val retryable: Boolean) : TokenResult
 }
 
 /**
- * Login (identidad) con Credential Manager + autorización de scopes con la Authorization API
- * de Play Services. Son dos APIs separadas: la primera solo confirma "quién sos", la segunda
- * es la que da permiso real para llamar YouTube/Drive/Photos.
- *
- * El access token que devuelve la Authorization API dura ~1h y Play Services no expone el
- * `expires_in` exacto, así que [ConnectedAccount.accessTokenExpiresAt] es una estimación
- * conservadora (ver [saveTokenExpiryEstimate]). Sin backend propio no hay refresh token: cuando
- * se vence, hay que volver a llamar [requestAuthorization] (normalmente sin UI, si Play
- * Services todavía tiene la cuenta autorizada).
+ * Usa `GoogleSignInClient` + `GoogleAuthUtil` (la API "clásica", integrada al `AccountManager`
+ * de Android) en vez de Credential Manager + la Authorization API de Play Services. Se decidió
+ * así a propósito: esa combinación moderna nunca permite renovar el token sin una Activity, ni
+ * siquiera en silencio, así que no sirve para una app de sync desatendida en background.
+ * `GoogleAuthUtil.getToken` sí puede pedir un token fresco desde un Worker sin ninguna pantalla,
+ * salvo el caso raro de que el usuario haya revocado el acceso (ahí sí hace falta reautorizar).
  */
 class GoogleAuthManager(private val context: Context) {
 
-    private val credentialManager = CredentialManager.create(context)
-
-    suspend fun signIn(activity: Activity): SignInResult {
-        val webClientId = context.getString(R.string.google_web_client_id)
-        val option = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(webClientId)
-            .setNonce(generateNonce())
-            .build()
-        val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
-
-        return try {
-            val response = credentialManager.getCredential(request = request, context = activity)
-            val credential = response.credential
-            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                SignInResult.Success(email = googleIdTokenCredential.id, displayName = googleIdTokenCredential.displayName)
-            } else {
-                SignInResult.Failure("Tipo de credencial inesperado")
-            }
-        } catch (e: GetCredentialException) {
-            SignInResult.Failure(e.message ?: "No se pudo iniciar sesión")
-        } catch (e: GoogleIdTokenParsingException) {
-            SignInResult.Failure("Token de Google inválido")
-        }
-    }
-
-    /** [activity] hace falta porque, si el usuario nunca otorgó estos scopes, hay que mostrarle un consentimiento. */
-    suspend fun requestAuthorization(activity: Activity, scopes: Set<String> = GoogleApiScopes.ALL): AuthorizationOutcome {
-        val request = AuthorizationRequest.builder()
-            .setRequestedScopes(scopes.map { Scope(it) })
+    private fun signInOptions(): GoogleSignInOptions =
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(
+                Scope(GoogleApiScopes.YOUTUBE_UPLOAD),
+                Scope(GoogleApiScopes.DRIVE_FILE),
+                Scope(GoogleApiScopes.PHOTOS_APPEND_ONLY),
+            )
             .build()
 
+    fun signInIntent(activity: Activity): Intent =
+        GoogleSignIn.getClient(activity, signInOptions()).signInIntent
+
+    suspend fun handleSignInResult(data: Intent?): SignInResult {
         return try {
-            val result = Identity.getAuthorizationClient(activity).authorize(request).await()
-            if (result.hasResolution()) {
-                val pendingIntent = result.pendingIntent
-                    ?: return AuthorizationOutcome.Failure("Google no devolvió un intent de consentimiento")
-                AuthorizationOutcome.NeedsResolution(pendingIntent.intentSender, scopes)
+            val account = GoogleSignIn.getSignedInAccountFromIntent(data).await()
+            val email = account.email
+            if (email == null) {
+                SignInResult.Failure("Google no devolvió un email para esta cuenta")
             } else {
-                AuthorizationOutcome.Granted(accessToken = result.accessToken, grantedScopes = scopes)
+                SignInResult.Success(email = email, displayName = account.displayName)
             }
         } catch (e: ApiException) {
-            AuthorizationOutcome.Failure(e.message ?: "Error al autorizar")
+            SignInResult.Failure(e.message ?: "No se pudo iniciar sesión (código ${e.statusCode})")
         }
     }
 
-    /** Se llama con el Intent que vuelve del [IntentSenderRequest] lanzado para el caso NeedsResolution. */
-    fun handleAuthorizationResolution(data: Intent?, scopes: Set<String>): AuthorizationOutcome {
-        return try {
-            val result = Identity.getAuthorizationClient(context).getAuthorizationResultFromIntent(data)
-            AuthorizationOutcome.Granted(accessToken = result.accessToken, grantedScopes = scopes)
-        } catch (e: ApiException) {
-            AuthorizationOutcome.Failure(e.message ?: "El usuario no otorgó el permiso")
+    /** Se puede llamar desde cualquier lado, incluido un Worker en background: no necesita Activity. */
+    suspend fun getFreshAccessToken(email: String, scopes: Set<String> = GoogleApiScopes.ALL): TokenResult =
+        withContext(Dispatchers.IO) {
+            val scopeString = "oauth2:" + scopes.joinToString(" ")
+            try {
+                val token = GoogleAuthUtil.getToken(context, email, scopeString)
+                TokenResult.Success(token)
+            } catch (e: UserRecoverableAuthException) {
+                TokenResult.NeedsReauth(e.intent)
+            } catch (e: GoogleAuthException) {
+                TokenResult.Failure(e.message ?: "Error de autenticación con Google", retryable = false)
+            } catch (e: IOException) {
+                TokenResult.Failure(e.message ?: "Error de red autenticando con Google", retryable = true)
+            }
         }
-    }
-
-    /** Ventana conservadora bajo la ~1h real, para no usar un token vencido. */
-    fun estimateTokenExpiry(now: Long = System.currentTimeMillis()): Long = now + 50 * 60 * 1000L
-
-    private fun generateNonce(byteLength: Int = 32): String {
-        val randomBytes = ByteArray(byteLength)
-        SecureRandom().nextBytes(randomBytes)
-        return Base64.encodeToString(randomBytes, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
-    }
 }

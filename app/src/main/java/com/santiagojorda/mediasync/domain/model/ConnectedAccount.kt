@@ -1,13 +1,10 @@
 package com.santiagojorda.mediasync.domain.model
 
+/**
+ * No cachea ningún token: con GoogleAuthUtil (ver GoogleAuthManager) se pide uno fresco en el
+ * momento de cada subida, Play Services se encarga del cacheo/refresh real a nivel de cuenta.
+ */
 data class ConnectedAccount(
     val email: String,
     val displayName: String? = null,
-    val grantedScopes: Set<String> = emptySet(),
-    val accessToken: String? = null,
-    /** Estimado (Play Services no expone el expires_in exacto): ver GoogleAuthManager. */
-    val accessTokenExpiresAt: Long? = null,
-) {
-    fun hasValidToken(now: Long = System.currentTimeMillis()): Boolean =
-        accessToken != null && accessTokenExpiresAt != null && now < accessTokenExpiresAt
-}
+)

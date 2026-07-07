@@ -7,7 +7,4 @@ import androidx.room.PrimaryKey
 data class ConnectedAccountEntity(
     @PrimaryKey val email: String,
     val displayName: String? = null,
-    val grantedScopes: List<String> = emptyList(),
-    val accessToken: String? = null,
-    val accessTokenExpiresAt: Long? = null,
 )

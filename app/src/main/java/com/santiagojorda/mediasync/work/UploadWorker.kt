@@ -52,8 +52,13 @@ class UploadWorker(
 
         val app = applicationContext as MediaSyncApplication
         val destination = when (rule.destinationType) {
-            DestinationType.YOUTUBE -> YouTubeUploader(applicationContext, app.connectedAccountRepository)
-            DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(applicationContext, app.connectedAccountRepository, app.ruleRepository)
+            DestinationType.YOUTUBE -> YouTubeUploader(applicationContext, app.connectedAccountRepository, app.googleAuthManager)
+            DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(
+                applicationContext,
+                app.connectedAccountRepository,
+                app.ruleRepository,
+                app.googleAuthManager,
+            )
             DestinationType.DRIVE -> DriveUploader()
         }
         // Cualquier excepción no contemplada por el uploader (una respuesta que no es el JSON

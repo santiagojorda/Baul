@@ -77,9 +77,6 @@ dependencies {
 
     implementation(libs.work.runtime.ktx)
 
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services.auth)
-    implementation(libs.googleid)
     implementation(libs.play.services.auth)
 
     implementation(libs.google.api.client.android) {

@@ -3,7 +3,6 @@ package com.santiagojorda.mediasync.ui.accounts
 import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,9 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,20 +44,15 @@ fun AccountsScreen(
     val context = LocalContext.current
     val activity = context as? Activity
 
-    var pendingScopes by remember { mutableStateOf<Set<String>>(emptySet()) }
-    val authorizationLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
+    val signInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
     ) { result ->
-        viewModel.onAuthorizationResolutionResult(result.data, pendingScopes)
+        viewModel.onSignInResult(result.data)
     }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is AccountsEvent.LaunchAuthorizationResolution -> {
-                    pendingScopes = event.scopes
-                    authorizationLauncher.launch(IntentSenderRequest.Builder(event.intentSender).build())
-                }
                 is AccountsEvent.Error -> Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
             }
         }
@@ -69,7 +60,7 @@ fun AccountsScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Button(
-            onClick = { activity?.let(viewModel::addAccount) },
+            onClick = { activity?.let { signInLauncher.launch(viewModel.signInIntent(it)) } },
             enabled = !isLoading && activity != null,
             modifier = Modifier.fillMaxWidth(),
         ) {
