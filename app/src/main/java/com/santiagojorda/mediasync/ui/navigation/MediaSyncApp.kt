@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -89,7 +88,7 @@ fun MediaSyncApp() {
                     NavigationBarItem(
                         selected = currentRoute == MediaSyncDestinations.RULE_LIST,
                         onClick = { navController.navigateToBottomBarRoute(MediaSyncDestinations.RULE_LIST) },
-                        icon = { Icon(Icons.Default.List, contentDescription = null) },
+                        icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
                         label = { Text("Reglas") },
                     )
                     NavigationBarItem(
