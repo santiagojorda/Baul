@@ -15,7 +15,7 @@ import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
 
 @Database(
     entities = [RuleEntity::class, UploadLogEntity::class, ConnectedAccountEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -35,7 +35,13 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "mediasync.db",
-                ).build().also { instance = it }
+                )
+                    // Pre-lanzamiento, sin usuarios reales todavía: mientras el esquema siga
+                    // cambiando seguido, mejor recrear la base que escribir Migrations a mano.
+                    // Sacar esto y agregar Migration reales antes de tener datos que importen.
+                    .fallbackToDestructiveMigration()
+                    .build()
+                    .also { instance = it }
             }
     }
 }
