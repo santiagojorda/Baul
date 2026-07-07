@@ -6,13 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.santiagojorda.mediasync.data.local.converter.Converters
+import com.santiagojorda.mediasync.data.local.dao.ConnectedAccountDao
 import com.santiagojorda.mediasync.data.local.dao.RuleDao
 import com.santiagojorda.mediasync.data.local.dao.UploadLogDao
+import com.santiagojorda.mediasync.data.local.entity.ConnectedAccountEntity
 import com.santiagojorda.mediasync.data.local.entity.RuleEntity
 import com.santiagojorda.mediasync.data.local.entity.UploadLogEntity
 
 @Database(
-    entities = [RuleEntity::class, UploadLogEntity::class],
+    entities = [RuleEntity::class, UploadLogEntity::class, ConnectedAccountEntity::class],
     version = 1,
     exportSchema = true,
 )
@@ -21,6 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun ruleDao(): RuleDao
     abstract fun uploadLogDao(): UploadLogDao
+    abstract fun connectedAccountDao(): ConnectedAccountDao
 
     companion object {
         @Volatile

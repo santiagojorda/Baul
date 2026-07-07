@@ -29,6 +29,7 @@ import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.santiagojorda.mediasync.MediaSyncApplication
 import com.santiagojorda.mediasync.ui.accounts.AccountsScreen
+import com.santiagojorda.mediasync.ui.accounts.AccountsViewModel
 import com.santiagojorda.mediasync.ui.history.HistoryScreen
 import com.santiagojorda.mediasync.ui.history.HistoryViewModel
 import com.santiagojorda.mediasync.ui.rulelist.RuleListScreen
@@ -107,7 +108,9 @@ fun MediaSyncApp() {
                 val viewModel: RuleEditorViewModel = viewModel(
                     key = "rule_editor_$ruleId",
                     factory = viewModelFactory {
-                        initializer { RuleEditorViewModel(app.ruleRepository, ruleId.takeIf { it != -1L }) }
+                        initializer {
+                            RuleEditorViewModel(app.ruleRepository, app.connectedAccountRepository, ruleId.takeIf { it != -1L })
+                        }
                     },
                 )
                 RuleEditorScreen(viewModel = viewModel, onDone = { navController.popBackStack() })
@@ -121,7 +124,12 @@ fun MediaSyncApp() {
                 HistoryScreen(viewModel = viewModel)
             }
             composable(MediaSyncDestinations.ACCOUNTS) {
-                AccountsScreen()
+                val viewModel: AccountsViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer { AccountsViewModel(app.connectedAccountRepository, app.googleAuthManager) }
+                    },
+                )
+                AccountsScreen(viewModel = viewModel)
             }
         }
     }

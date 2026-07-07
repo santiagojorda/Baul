@@ -37,6 +37,7 @@ fun RuleEditorScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val connectedAccounts by viewModel.connectedAccounts.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(state.isSaved) {
@@ -78,12 +79,20 @@ fun RuleEditorScreen(
             }
         }
 
-        OutlinedTextField(
-            value = state.googleAccountEmail,
-            onValueChange = viewModel::onGoogleAccountEmailChanged,
-            label = { Text("Cuenta de Google (email)") },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Text(text = "Cuenta de Google", style = MaterialTheme.typography.titleMedium)
+        if (connectedAccounts.isEmpty()) {
+            Text(text = "No hay cuentas conectadas todavía. Andá a la pestaña Cuentas para agregar una.")
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                connectedAccounts.forEach { account ->
+                    FilterChip(
+                        selected = state.googleAccountEmail == account.email,
+                        onClick = { viewModel.onGoogleAccountEmailChanged(account.email) },
+                        label = { Text(account.displayName ?: account.email) },
+                    )
+                }
+            }
+        }
 
         when (state.destinationType) {
             DestinationType.YOUTUBE -> YouTubeFields(state, viewModel)

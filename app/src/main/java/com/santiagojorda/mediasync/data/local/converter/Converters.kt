@@ -5,7 +5,7 @@ import com.santiagojorda.mediasync.domain.model.DestinationType
 import com.santiagojorda.mediasync.domain.model.UploadStatus
 import com.santiagojorda.mediasync.domain.model.YouTubePrivacyStatus
 
-/** Separador que no puede aparecer en un tag de YouTube, para no chocar con comas del usuario. */
+/** Separador que no puede aparecer en un tag de YouTube ni en un scope OAuth. */
 private const val LIST_SEPARATOR = ""
 
 class Converters {
@@ -30,9 +30,9 @@ class Converters {
     fun toUploadStatus(value: String): UploadStatus = UploadStatus.valueOf(value)
 
     @TypeConverter
-    fun fromTagList(value: List<String>): String = value.joinToString(separator = LIST_SEPARATOR)
+    fun fromStringList(value: List<String>): String = value.joinToString(separator = LIST_SEPARATOR)
 
     @TypeConverter
-    fun toTagList(value: String): List<String> =
+    fun toStringList(value: String): List<String> =
         if (value.isEmpty()) emptyList() else value.split(LIST_SEPARATOR)
 }

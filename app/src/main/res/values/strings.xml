@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">MediaSync</string>
+    <!--
+      OAuth 2.0 Client ID de tipo "Web application" (no el de tipo Android) creado en Google
+      Cloud Console para este proyecto. Lo pide GetGoogleIdOption.setServerClientId() en el
+      login con Credential Manager. Reemplazar antes de probar el login real.
+    -->
+    <string name="google_web_client_id" translatable="false">REEMPLAZAR_CON_WEB_CLIENT_ID_DE_GOOGLE_CLOUD_CONSOLE</string>
 </resources>

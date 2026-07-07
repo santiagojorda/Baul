@@ -2,7 +2,9 @@ package com.santiagojorda.mediasync.ui.ruleeditor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.santiagojorda.mediasync.data.repository.ConnectedAccountRepository
 import com.santiagojorda.mediasync.data.repository.RuleRepository
+import com.santiagojorda.mediasync.domain.model.ConnectedAccount
 import com.santiagojorda.mediasync.domain.model.DestinationType
 import com.santiagojorda.mediasync.domain.model.DriveMetadata
 import com.santiagojorda.mediasync.domain.model.GooglePhotosMetadata
@@ -10,18 +12,24 @@ import com.santiagojorda.mediasync.domain.model.Rule
 import com.santiagojorda.mediasync.domain.model.YouTubeMetadata
 import com.santiagojorda.mediasync.domain.model.YouTubePrivacyStatus
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class RuleEditorViewModel(
     private val ruleRepository: RuleRepository,
+    connectedAccountRepository: ConnectedAccountRepository,
     private val ruleId: Long?,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RuleEditorUiState(isLoading = ruleId != null))
     val uiState: StateFlow<RuleEditorUiState> = _uiState.asStateFlow()
+
+    val connectedAccounts: StateFlow<List<ConnectedAccount>> = connectedAccountRepository.observeAccounts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         if (ruleId != null) {

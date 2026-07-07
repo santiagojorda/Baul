@@ -10,13 +10,13 @@ navigationCompose = "2.9.8"
 composeBom = "2026.06.00"
 room = "2.8.4"
 work = "2.11.2"
-credentials = "1.5.0"
-googlePlayServicesAuth = "21.3.0"
+credentials = "1.6.0"
+googlePlayServicesAuth = "21.6.0"
 googleApiClientAndroid = "2.8.0"
 googleHttpClientAndroid = "1.46.0"
 googleApiServicesYoutube = "v3-rev20250101-2.0.0"
 mediaTransformer = "1.5.1"
-kotlinxCoroutines = "1.9.0"
+kotlinxCoroutines = "1.10.2"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +52,7 @@ media3-transformer = { group = "androidx.media3", name = "media3-transformer", v
 media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "mediaTransformer" }
 
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
