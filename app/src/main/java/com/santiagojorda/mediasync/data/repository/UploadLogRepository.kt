@@ -5,6 +5,7 @@ import android.net.Uri
 import com.santiagojorda.mediasync.data.local.dao.RuleDao
 import com.santiagojorda.mediasync.data.local.dao.UploadLogDao
 import com.santiagojorda.mediasync.data.local.toDomain
+import androidx.work.ExistingWorkPolicy
 import com.santiagojorda.mediasync.domain.model.UploadLogEntry
 import com.santiagojorda.mediasync.work.UploadWorkScheduler
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,11 @@ class UploadLogRepository(
     fun observeLogs(): Flow<List<UploadLogEntry>> =
         uploadLogDao.observeLogs().map { entities -> entities.map { it.toDomain() } }
 
-    /** Vuelve a encolar la subida para un archivo que quedó en FAILED. */
+    /**
+     * Reintento manual: para un archivo en FAILED o PENDING/UPLOADING (por si quedó colgado).
+     * Usa REPLACE en vez de KEEP porque, si todavía hay un work "vivo" con este mismo nombre
+     * (encolado o corriendo), KEEP no haría nada — REPLACE lo cancela y arranca uno nuevo.
+     */
     suspend fun retry(entry: UploadLogEntry) {
         val rule = ruleDao.getRuleById(entry.ruleId) ?: return
         UploadWorkScheduler.enqueue(
@@ -27,6 +32,7 @@ class UploadLogRepository(
             ruleId = entry.ruleId,
             mediaUri = Uri.parse(entry.mediaUri),
             wifiOnly = rule.wifiOnly,
+            policy = ExistingWorkPolicy.REPLACE,
         )
     }
 }

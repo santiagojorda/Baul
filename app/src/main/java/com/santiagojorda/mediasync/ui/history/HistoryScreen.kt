@@ -76,7 +76,7 @@ private fun HistoryRow(entry: UploadLogEntry, onRetry: () -> Unit) {
                     )
                 }
             }
-            if (entry.status == UploadStatus.FAILED) {
+            if (entry.status == UploadStatus.FAILED || entry.status == UploadStatus.UPLOADING) {
                 IconButton(onClick = onRetry) {
                     Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reintentar")
                 }

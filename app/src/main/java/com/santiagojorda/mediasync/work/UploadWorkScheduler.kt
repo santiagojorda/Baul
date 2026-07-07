@@ -14,7 +14,20 @@ import java.util.concurrent.TimeUnit
 
 object UploadWorkScheduler {
 
-    fun enqueue(context: Context, ruleId: Long, mediaUri: Uri, wifiOnly: Boolean) {
+    /**
+     * [policy] KEEP (default) para el despacho automático: si ya hay un trabajo para este
+     * archivo, no duplicarlo. Para un reintento manual del usuario hay que pasar REPLACE, porque
+     * si el archivo está PENDING/UPLOADING todavía existe un work "vivo" con este mismo nombre y
+     * KEEP no haría nada — REPLACE cancela ese anterior (esté encolado o corriendo) y arranca uno
+     * nuevo.
+     */
+    fun enqueue(
+        context: Context,
+        ruleId: Long,
+        mediaUri: Uri,
+        wifiOnly: Boolean,
+        policy: ExistingWorkPolicy = ExistingWorkPolicy.KEEP,
+    ) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
             .build()
@@ -33,10 +46,6 @@ object UploadWorkScheduler {
         // Por archivo (no por regla): las subidas de una misma regla corren en paralelo. La
         // condición de carrera que esto causaba en Google Photos (crear el álbum duplicado) se
         // arregló del lado de GooglePhotosUploader con un Mutex + re-chequeo en la base, no acá.
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            "upload-$ruleId-$mediaUri",
-            ExistingWorkPolicy.KEEP,
-            request,
-        )
+        WorkManager.getInstance(context).enqueueUniqueWork("upload-$ruleId-$mediaUri", policy, request)
     }
 }
