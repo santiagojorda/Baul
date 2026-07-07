@@ -48,6 +48,7 @@ class GoogleAuthManager(private val context: Context) {
                 Scope(GoogleApiScopes.YOUTUBE_UPLOAD),
                 Scope(GoogleApiScopes.DRIVE_FILE),
                 Scope(GoogleApiScopes.PHOTOS_APPEND_ONLY),
+                Scope(GoogleApiScopes.PHOTOS_READONLY_APP_CREATED_DATA),
             )
             .build()
 
