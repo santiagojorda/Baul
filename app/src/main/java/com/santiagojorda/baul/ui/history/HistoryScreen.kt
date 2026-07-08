@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.santiagojorda.baul.domain.model.UploadLogEntry
 import com.santiagojorda.baul.domain.model.UploadStatus
+import com.santiagojorda.baul.domain.upload.uploadPercent
 import com.santiagojorda.baul.ui.common.EmptyState
 import com.santiagojorda.baul.ui.common.ListItemCard
 import com.santiagojorda.baul.ui.common.StatusChip
@@ -151,6 +152,7 @@ private fun UploadingNowCard(uploadingNow: List<Pair<HistoryGroup, UploadLogEntr
             }
             uploadingNow.forEach { (group, entry) ->
                 val fraction = progressFraction(entry)
+                val percent = uploadPercent(entry.bytesUploaded, entry.totalBytes)
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (fraction == null) {
@@ -161,7 +163,7 @@ private fun UploadingNowCard(uploadingNow: List<Pair<HistoryGroup, UploadLogEntr
                                 append(entry.fileName)
                                 append(" — ")
                                 append(group.folderName)
-                                if (fraction != null) append(" (${(fraction * 100).toInt()}%)")
+                                if (percent != null) append(" ($percent%)")
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(start = if (fraction == null) 12.dp else 0.dp),

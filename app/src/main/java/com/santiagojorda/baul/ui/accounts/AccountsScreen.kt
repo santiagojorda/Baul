@@ -66,36 +66,11 @@ fun AccountsScreen(
         }
     }
 
-    // isGranted() se vuelve a chequear al volver de Ajustes: no hay callback de resultado para
-    // un permiso especial como este, solo el ciclo de vida de la pantalla.
-    var allFilesAccessGranted by remember { mutableStateOf(AllFilesAccess.isGranted()) }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                allFilesAccessGranted = AllFilesAccess.isGranted()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    val allFilesAccessGranted = rememberAllFilesAccessGranted()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         if (!allFilesAccessGranted) {
-            ListItemCard {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Borrado sin confirmación", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = "Da acceso a todos los archivos para que Baul borre los originales " +
-                            "ya subidos sin preguntar cada vez que abrís la app.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Button(onClick = { context.startActivity(AllFilesAccess.requestIntent(context)) }) {
-                    Text("Activar")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+            AllFilesAccessBanner(onActivate = { context.startActivity(AllFilesAccess.requestIntent(context)) })
         }
 
         Button(
@@ -130,6 +105,42 @@ fun AccountsScreen(
             }
         }
     }
+}
+
+/** isGranted() se vuelve a chequear al volver de Ajustes: no hay callback de resultado para un
+ *  permiso especial como este, solo el ciclo de vida de la pantalla. */
+@Composable
+private fun rememberAllFilesAccessGranted(): Boolean {
+    var granted by remember { mutableStateOf(AllFilesAccess.isGranted()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                granted = AllFilesAccess.isGranted()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return granted
+}
+
+@Composable
+private fun AllFilesAccessBanner(onActivate: () -> Unit) {
+    ListItemCard {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Borrado sin confirmación", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Da acceso a todos los archivos para que Baul borre los originales " +
+                    "ya subidos sin preguntar cada vez que abrís la app.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Button(onClick = onActivate) {
+            Text("Activar")
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
 }
 
 @Composable

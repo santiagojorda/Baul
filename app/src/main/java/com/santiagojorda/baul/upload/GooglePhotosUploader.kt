@@ -148,7 +148,7 @@ class GooglePhotosUploader(
                 throw PhotosApiException(
                     "Fallo la subida de bytes (HTTP $code): ${connection.readError()}",
                     retryable = isRetryableHttpCode(code),
-                    isQuota = code == 429,
+                    isQuota = code == HTTP_TOO_MANY_REQUESTS,
                 )
             }
             return connection.inputStream.bufferedReader().readText()
@@ -187,11 +187,11 @@ class GooglePhotosUploader(
         }
         try {
             val code = connection.responseCode
-            if (code !in 200..299) {
+            if (code !in HTTP_SUCCESS_RANGE) {
                 throw PhotosApiException(
                     "Error HTTP $code en ${url.substringAfterLast('/')}: ${connection.readError()}",
                     retryable = isRetryableHttpCode(code),
-                    isQuota = code == 429,
+                    isQuota = code == HTTP_TOO_MANY_REQUESTS,
                 )
             }
             return JSONObject(connection.inputStream.bufferedReader().readText())
@@ -210,11 +210,11 @@ class GooglePhotosUploader(
         try {
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val code = connection.responseCode
-            if (code !in 200..299) {
+            if (code !in HTTP_SUCCESS_RANGE) {
                 throw PhotosApiException(
                     "Error HTTP $code en ${url.substringAfterLast('/')}: ${connection.readError()}",
                     retryable = isRetryableHttpCode(code),
-                    isQuota = code == 429,
+                    isQuota = code == HTTP_TOO_MANY_REQUESTS,
                 )
             }
             return JSONObject(connection.inputStream.bufferedReader().readText())
@@ -239,7 +239,8 @@ class GooglePhotosUploader(
     private fun HttpURLConnection.readError(): String? = errorStream?.bufferedReader()?.readText()
 
     /** 429 (rate limit / cuota) es transitorio igual que un 5xx: vale la pena reintentar con backoff. */
-    private fun isRetryableHttpCode(code: Int): Boolean = code >= 500 || code == 429
+    private fun isRetryableHttpCode(code: Int): Boolean =
+        code >= HttpURLConnection.HTTP_INTERNAL_ERROR || code == HTTP_TOO_MANY_REQUESTS
 
     private class PhotosApiException(message: String, val retryable: Boolean, val isQuota: Boolean = false) : Exception(message)
 
@@ -247,6 +248,11 @@ class GooglePhotosUploader(
         const val UPLOAD_URL = "https://photoslibrary.googleapis.com/v1/uploads"
         const val ALBUMS_URL = "https://photoslibrary.googleapis.com/v1/albums"
         const val BATCH_CREATE_URL = "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate"
+
+        /** No está en [HttpURLConnection] (solo trae códigos hasta HTTP/1.0); la Photos Library
+         *  API sí puede devolver 429 (rate limit / cuota), por eso la constante propia. */
+        const val HTTP_TOO_MANY_REQUESTS = 429
+        val HTTP_SUCCESS_RANGE = 200..299
 
         /** Comparte el lock entre todas las instancias/Workers del proceso: la creación de un
          *  álbum es rara y barata, no hace falta un lock por regla. */
@@ -266,6 +272,7 @@ class GooglePhotosUploader(
 internal object AdaptiveWriteLimiter {
     internal const val MAX_CONCURRENCY = 3
     internal const val SUCCESSES_TO_GROW = 8
+    private const val SLOT_POLL_INTERVAL_MS = 200L
 
     private val gate = Semaphore(permits = MAX_CONCURRENCY)
     private val stateLock = Mutex()
@@ -299,7 +306,7 @@ internal object AdaptiveWriteLimiter {
 
     private suspend fun waitForSlot() {
         while (!stateLock.withLock { active < softLimit }) {
-            delay(200)
+            delay(SLOT_POLL_INTERVAL_MS)
         }
     }
 

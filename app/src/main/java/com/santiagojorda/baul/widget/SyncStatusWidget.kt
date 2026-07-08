@@ -125,19 +125,19 @@ private fun WidgetContent(counts: SyncCounts) {
             Row(modifier = GlanceModifier.defaultWeight(), verticalAlignment = Alignment.Vertical.CenterVertically) {
                 var needsSpacer = false
                 if (counts.unsynced > 0) {
-                    CountBadge(value = counts.unsynced, dotColor = Color(0xFFF2A93B))
+                    CountBadge(value = counts.unsynced, dotColor = WidgetColors.Pending)
                     needsSpacer = true
                 }
                 if (counts.failed > 0) {
                     if (needsSpacer) Spacer(modifier = GlanceModifier.width(10.dp))
-                    CountBadge(value = counts.failed, dotColor = Color(0xFFD9463C))
+                    CountBadge(value = counts.failed, dotColor = WidgetColors.Failed)
                     needsSpacer = true
                 }
                 if (counts.pendingDeletions > 0) {
                     // Subidos pero todavía ocupando espacio en el celular: falta confirmar el
                     // borrado, y eso solo pasa al abrir la app (ver DeleteUploadedSourcesEffect).
                     if (needsSpacer) Spacer(modifier = GlanceModifier.width(10.dp))
-                    CountBadge(value = counts.pendingDeletions, dotColor = Color(0xFF3B82C4))
+                    CountBadge(value = counts.pendingDeletions, dotColor = WidgetColors.PendingDeletion)
                 }
             }
         }
@@ -152,6 +152,13 @@ private fun WidgetContent(counts: SyncCounts) {
                 .padding(4.dp),
         )
     }
+}
+
+/** Colores fijos de los puntitos de estado: Glance no tiene acceso al `MaterialTheme` de Compose. */
+private object WidgetColors {
+    val Pending = Color(0xFFF2A93B)
+    val Failed = Color(0xFFD9463C)
+    val PendingDeletion = Color(0xFF3B82C4)
 }
 
 /** Punto de color + número, ej. el punto naranja + "3" de "sin subir". */

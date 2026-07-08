@@ -57,7 +57,7 @@
     <ID>ReturnCount:RuleMatcher.kt:RuleMatcher$fun expectedRelativePath: String?</ID>
     <ID>ReturnCount:RuleMatcher.kt:RuleMatcher$fun matches: Boolean</ID>
     <ID>ReturnCount:SyncCoordinator.kt:SyncCoordinator$private suspend fun maybeAutoCreateRule: RuleEntity?</ID>
-    <ID>ReturnCount:UploadWorker.kt:UploadWorker$override suspend fun doWork: Result</ID>
+    <ID>ReturnCount:UploadWorker.kt:UploadWorker$private suspend fun parseInput: WorkerInput?</ID>
     <ID>SwallowedException:BaulApp.kt:e: IllegalArgumentException</ID>
     <ID>SwallowedException:BaulApp.kt:e: SecurityException</ID>
     <ID>TooGenericExceptionCaught:UploadWorker.kt:UploadWorker$e: Exception</ID>

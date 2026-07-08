@@ -16,6 +16,7 @@ import com.santiagojorda.baul.MainActivity
 import com.santiagojorda.baul.data.local.AppDatabase
 import com.santiagojorda.baul.data.local.entity.UploadLogEntity
 import com.santiagojorda.baul.domain.model.UploadStatus
+import com.santiagojorda.baul.domain.upload.uploadPercent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -79,11 +80,8 @@ class UploadNotificationService : Service() {
         val contentText = when {
             uploading.isEmpty() -> "Sincronizando…"
             uploading.size == 1 -> uploading.first().let { entry ->
-                if (entry.totalBytes > 0) {
-                    "${entry.fileName} — ${(entry.bytesUploaded * 100 / entry.totalBytes)}%"
-                } else {
-                    entry.fileName
-                }
+                val percent = uploadPercent(entry.bytesUploaded, entry.totalBytes)
+                if (percent != null) "${entry.fileName} — $percent%" else entry.fileName
             }
             else -> "Subiendo ${uploading.size} archivos"
         }
@@ -102,9 +100,9 @@ class UploadNotificationService : Service() {
             .setContentIntent(openApp)
             .setPriority(NotificationCompat.PRIORITY_LOW)
 
-        val single = uploading.singleOrNull()
-        if (single != null && single.totalBytes > 0) {
-            builder.setProgress(100, (single.bytesUploaded * 100 / single.totalBytes).toInt().coerceIn(0, 100), false)
+        val singlePercent = uploading.singleOrNull()?.let { uploadPercent(it.bytesUploaded, it.totalBytes) }
+        if (singlePercent != null) {
+            builder.setProgress(PROGRESS_MAX, singlePercent, false)
         } else {
             builder.setProgress(0, 0, uploading.isNotEmpty())
         }
@@ -115,6 +113,9 @@ class UploadNotificationService : Service() {
         private const val NOTIFICATION_ID = 4201
         private const val CHANNEL_ID = "uploads"
         private const val STOP_DEBOUNCE_MS = 2000L
+
+        /** Escala del progress bar de [NotificationCompat.Builder.setProgress] (0..100, no bytes). */
+        private const val PROGRESS_MAX = 100
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, UploadNotificationService::class.java))

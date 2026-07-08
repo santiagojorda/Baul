@@ -38,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
@@ -72,6 +73,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val bottomBarRoutes = setOf(BaulDestinations.RULE_LIST, BaulDestinations.HISTORY, BaulDestinations.ACCOUNTS)
+
+/** Evita repetir el boilerplate de `viewModelFactory { initializer { ... } }` en cada ruta del NavHost. */
+@Composable
+private inline fun <reified VM : ViewModel> screenViewModel(key: String? = null, crossinline create: () -> VM): VM =
+    viewModel(key = key, factory = viewModelFactory { initializer { create() } })
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,18 +163,14 @@ fun BaulApp() {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(BaulDestinations.RULE_LIST) {
-                val viewModel: RuleListViewModel = viewModel(
-                    factory = viewModelFactory {
-                        initializer {
-                            RuleListViewModel(
-                                app.ruleRepository,
-                                app.uploadLogRepository,
-                                app.syncCoordinator,
-                                app.excludedFolderRepository,
-                            )
-                        }
-                    },
-                )
+                val viewModel: RuleListViewModel = screenViewModel {
+                    RuleListViewModel(
+                        app.ruleRepository,
+                        app.uploadLogRepository,
+                        app.syncCoordinator,
+                        app.excludedFolderRepository,
+                    )
+                }
                 RuleListScreen(
                     viewModel = viewModel,
                     onEditRule = { ruleId -> navController.navigate(BaulDestinations.ruleEditorRoute(ruleId)) },
@@ -184,57 +186,35 @@ fun BaulApp() {
                 ),
             ) { entry ->
                 val ruleId = entry.arguments?.getLong(BaulDestinations.RULE_EDITOR_ARG_RULE_ID) ?: -1L
-                val viewModel: RuleEditorViewModel = viewModel(
-                    key = "rule_editor_$ruleId",
-                    factory = viewModelFactory {
-                        initializer {
-                            RuleEditorViewModel(
-                                app.ruleRepository,
-                                app.connectedAccountRepository,
-                                app.syncCoordinator,
-                                ruleId.takeIf { it != -1L },
-                            )
-                        }
-                    },
-                )
+                val viewModel: RuleEditorViewModel = screenViewModel(key = "rule_editor_$ruleId") {
+                    RuleEditorViewModel(
+                        app.ruleRepository,
+                        app.connectedAccountRepository,
+                        app.syncCoordinator,
+                        ruleId.takeIf { it != -1L },
+                    )
+                }
                 RuleEditorScreen(viewModel = viewModel, onDone = { navController.popBackStack() })
             }
             composable(BaulDestinations.HISTORY) {
-                val viewModel: HistoryViewModel = viewModel(
-                    factory = viewModelFactory {
-                        initializer { HistoryViewModel(app.uploadLogRepository, app.ruleRepository) }
-                    },
-                )
+                val viewModel: HistoryViewModel =
+                    screenViewModel { HistoryViewModel(app.uploadLogRepository, app.ruleRepository) }
                 HistoryScreen(viewModel = viewModel)
             }
             composable(BaulDestinations.ACCOUNTS) {
-                val viewModel: AccountsViewModel = viewModel(
-                    factory = viewModelFactory {
-                        initializer {
-                            AccountsViewModel(
-                                app.connectedAccountRepository,
-                                app.googleAuthManager,
-                                app.syncCoordinator,
-                            )
-                        }
-                    },
-                )
+                val viewModel: AccountsViewModel = screenViewModel {
+                    AccountsViewModel(app.connectedAccountRepository, app.googleAuthManager, app.syncCoordinator)
+                }
                 AccountsScreen(viewModel = viewModel, snackbarHostState = snackbarHostState)
             }
             composable(BaulDestinations.EXCLUDED_FOLDERS) {
-                val viewModel: ExcludedFoldersViewModel = viewModel(
-                    factory = viewModelFactory {
-                        initializer { ExcludedFoldersViewModel(app.excludedFolderRepository) }
-                    },
-                )
+                val viewModel: ExcludedFoldersViewModel =
+                    screenViewModel { ExcludedFoldersViewModel(app.excludedFolderRepository) }
                 ExcludedFoldersScreen(viewModel = viewModel)
             }
             composable(BaulDestinations.LOGS) {
-                val viewModel: LogsViewModel = viewModel(
-                    factory = viewModelFactory {
-                        initializer { LogsViewModel(app.uploadLogRepository, app.ruleRepository) }
-                    },
-                )
+                val viewModel: LogsViewModel =
+                    screenViewModel { LogsViewModel(app.uploadLogRepository, app.ruleRepository) }
                 LogsScreen(viewModel = viewModel)
             }
         }

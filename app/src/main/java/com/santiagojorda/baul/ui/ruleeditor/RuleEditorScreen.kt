@@ -78,19 +78,7 @@ fun RuleEditorScreen(
 
         HorizontalDivider()
 
-        Text(text = "Destino", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Drive todavía no sube nada de verdad (DriveUploader es un stub) — se oculta de acá
-            // para que no se pueda crear una regla que va a fallar siempre. El enum/modelo quedan
-            // intactos para cuando se implemente la subida real.
-            selectableDestinationTypes.forEach { type ->
-                FilterChip(
-                    selected = state.destinationType == type,
-                    onClick = { viewModel.onDestinationTypeChanged(type) },
-                    label = { Text(destinationLabel(type)) },
-                )
-            }
-        }
+        DestinationTypeRow(state, viewModel)
 
         Text(text = "Cuenta de Google", style = MaterialTheme.typography.titleMedium)
         if (connectedAccounts.isEmpty()) {
@@ -114,20 +102,11 @@ fun RuleEditorScreen(
 
         HorizontalDivider()
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(text = "Borrar original tras subir")
-            Switch(checked = state.deleteSourceAfterUpload, onCheckedChange = viewModel::onDeleteSourceAfterUploadChanged)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(text = "Solo con wifi")
-            Switch(checked = state.wifiOnly, onCheckedChange = viewModel::onWifiOnlyChanged)
-        }
+        DeleteSourceToggleRow(
+            checked = state.deleteSourceAfterUpload,
+            onCheckedChange = viewModel::onDeleteSourceAfterUploadChanged,
+        )
+        WifiOnlyToggleRow(checked = state.wifiOnly, onCheckedChange = viewModel::onWifiOnlyChanged)
 
         Button(
             onClick = viewModel::save,
@@ -136,6 +115,39 @@ fun RuleEditorScreen(
         ) {
             Text(text = "Guardar regla")
         }
+    }
+}
+
+@Composable
+private fun DestinationTypeRow(state: RuleEditorUiState, viewModel: RuleEditorViewModel) {
+    Text(text = "Destino", style = MaterialTheme.typography.titleMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Drive todavía no sube nada de verdad (DriveUploader es un stub) — se oculta de acá
+        // para que no se pueda crear una regla que va a fallar siempre. El enum/modelo quedan
+        // intactos para cuando se implemente la subida real.
+        selectableDestinationTypes.forEach { type ->
+            FilterChip(
+                selected = state.destinationType == type,
+                onClick = { viewModel.onDestinationTypeChanged(type) },
+                label = { Text(destinationLabel(type)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeleteSourceToggleRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = "Borrar original tras subir")
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun WifiOnlyToggleRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = "Solo con wifi")
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

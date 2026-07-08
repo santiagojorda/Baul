@@ -10,7 +10,10 @@ import com.santiagojorda.baul.data.local.dao.UploadLogDao
 import com.santiagojorda.baul.data.local.entity.UploadLogEntity
 import com.santiagojorda.baul.data.local.toDomain
 import com.santiagojorda.baul.domain.model.DestinationType
+import com.santiagojorda.baul.domain.model.Rule
 import com.santiagojorda.baul.domain.model.UploadStatus
+import com.santiagojorda.baul.domain.upload.Destination
+import com.santiagojorda.baul.domain.upload.MediaFile
 import com.santiagojorda.baul.domain.upload.UploadResult
 import com.santiagojorda.baul.media.MediaMetadataReader
 import com.santiagojorda.baul.upload.DriveUploader
@@ -27,18 +30,12 @@ class UploadWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
+    /** Ya validado: la regla existe y el archivo se pudo leer de MediaStore. */
+    private data class WorkerInput(val rule: Rule, val mediaFile: MediaFile, val mediaUriString: String)
+
     override suspend fun doWork(): Result {
-        val ruleId = inputData.getLong(KEY_RULE_ID, -1L)
-        val mediaUriString = inputData.getString(KEY_MEDIA_URI) ?: return Result.failure()
-        if (ruleId == -1L) return Result.failure()
-
         val database = AppDatabase.getInstance(applicationContext)
-        val rule = database.ruleDao().getRuleById(ruleId)?.toDomain() ?: return Result.failure()
-
-        val mediaFile = MediaMetadataReader(applicationContext.contentResolver)
-            .read(Uri.parse(mediaUriString))
-            ?.mediaFile
-            ?: return Result.failure()
+        val (rule, mediaFile, mediaUriString) = parseInput(database) ?: return Result.failure()
 
         // Hay al menos un servicio de notificación esperando este ping antes de que empiece a
         // subir de verdad: el propio servicio decide cuándo pararse mirando Room, así que da
@@ -48,32 +45,10 @@ class UploadWorker(
         val logDao = database.uploadLogDao()
         val existingLog = logDao.getLogForMedia(rule.id, mediaUriString)
         val startedAt = System.currentTimeMillis()
-        val logId = logDao.upsert(
-            UploadLogEntity(
-                id = existingLog?.id ?: 0,
-                ruleId = rule.id,
-                mediaUri = mediaUriString,
-                fileName = mediaFile.displayName,
-                status = UploadStatus.UPLOADING,
-                attemptCount = runAttemptCount,
-                createdAt = existingLog?.createdAt ?: startedAt,
-                updatedAt = startedAt,
-                totalBytes = mediaFile.sizeBytes,
-            ),
-        )
+        val logId = insertStartingLog(logDao, rule, mediaUriString, mediaFile, existingLog, startedAt)
         SyncStatusWidget().updateAll(applicationContext)
 
-        val app = applicationContext as BaulApplication
-        val destination = when (rule.destinationType) {
-            DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(
-                applicationContext,
-                app.connectedAccountRepository,
-                app.ruleRepository,
-                app.googleAuthManager,
-            )
-            DestinationType.DRIVE -> DriveUploader()
-        }
-
+        val destination = buildDestination(rule)
         val onProgress = throttledProgressReporter(logDao, logId, mediaFile.sizeBytes)
 
         // Cualquier excepción no contemplada por el uploader (una respuesta que no es el JSON
@@ -90,7 +65,70 @@ class UploadWorker(
         // BaulApp) revisa los pendientes y pide la confirmación la próxima vez que se abre la app.
         val outcome = UploadOutcomeResolver.resolve(uploadResult, runAttemptCount, mediaFile.sizeBytes)
 
-        val finishedAt = System.currentTimeMillis()
+        finalizeLog(logDao, logId, rule, mediaUriString, mediaFile, existingLog, startedAt, outcome)
+        SyncStatusWidget().updateAll(applicationContext)
+
+        return outcome.workResult
+    }
+
+    private suspend fun parseInput(database: AppDatabase): WorkerInput? {
+        val ruleId = inputData.getLong(KEY_RULE_ID, -1L)
+        val mediaUriString = inputData.getString(KEY_MEDIA_URI) ?: return null
+        if (ruleId == -1L) return null
+
+        val rule = database.ruleDao().getRuleById(ruleId)?.toDomain() ?: return null
+        val mediaFile = MediaMetadataReader(applicationContext.contentResolver)
+            .read(Uri.parse(mediaUriString))
+            ?.mediaFile
+            ?: return null
+
+        return WorkerInput(rule, mediaFile, mediaUriString)
+    }
+
+    private suspend fun insertStartingLog(
+        logDao: UploadLogDao,
+        rule: Rule,
+        mediaUriString: String,
+        mediaFile: MediaFile,
+        existingLog: UploadLogEntity?,
+        startedAt: Long,
+    ): Long = logDao.upsert(
+        UploadLogEntity(
+            id = existingLog?.id ?: 0,
+            ruleId = rule.id,
+            mediaUri = mediaUriString,
+            fileName = mediaFile.displayName,
+            status = UploadStatus.UPLOADING,
+            attemptCount = runAttemptCount,
+            createdAt = existingLog?.createdAt ?: startedAt,
+            updatedAt = startedAt,
+            totalBytes = mediaFile.sizeBytes,
+        ),
+    )
+
+    private fun buildDestination(rule: Rule): Destination {
+        val app = applicationContext as BaulApplication
+        return when (rule.destinationType) {
+            DestinationType.GOOGLE_PHOTOS -> GooglePhotosUploader(
+                applicationContext,
+                app.connectedAccountRepository,
+                app.ruleRepository,
+                app.googleAuthManager,
+            )
+            DestinationType.DRIVE -> DriveUploader()
+        }
+    }
+
+    private suspend fun finalizeLog(
+        logDao: UploadLogDao,
+        logId: Long,
+        rule: Rule,
+        mediaUriString: String,
+        mediaFile: MediaFile,
+        existingLog: UploadLogEntity?,
+        startedAt: Long,
+        outcome: UploadOutcomeResolver.Outcome,
+    ) {
         logDao.upsert(
             UploadLogEntity(
                 id = logId,
@@ -102,14 +140,11 @@ class UploadWorker(
                 remoteId = outcome.remoteId,
                 attemptCount = runAttemptCount + 1,
                 createdAt = existingLog?.createdAt ?: startedAt,
-                updatedAt = finishedAt,
+                updatedAt = System.currentTimeMillis(),
                 totalBytes = mediaFile.sizeBytes,
                 bytesUploaded = outcome.bytesUploaded,
             ),
         )
-        SyncStatusWidget().updateAll(applicationContext)
-
-        return outcome.workResult
     }
 
     /**
