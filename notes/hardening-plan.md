@@ -107,8 +107,8 @@ dispositivo real antes de confiar la app con fotos que importan.
 
 **Tareas:**
 - [ ] Activar branch protection en `main` (requerir que pase el workflow `coverage.yml` antes de mergear). Esto es un ajuste en GitHub Settings, no un archivo.
-- [x] `docs/privacy-policy.html` (se pasó de `.md` a `.html` autocontenido, con `docs/.nojekyll` al lado para que Pages lo sirva tal cual sin depender de un theme de Jekyll) publicada en GitHub Pages (Settings → Pages → branch `main` → carpeta `/docs`, habilitado vía API).
-- [x] `prompt-app-android.md` movido de la raíz a `docs/prompt-app-android.md`. Ojo: al quedar dentro de `docs/`, ahora es públicamente accesible vía GitHub Pages junto con la política de privacidad — si no querés que se vea, hay que sacarlo de `docs/` o excluirlo puntualmente de Pages.
+- [x] Política de privacidad publicada en GitHub Pages, pero **no** vía `main`/`docs` — GitHub Pages en modo "legacy" solo acepta como path la raíz de una rama o `/docs`, así que para no tener una carpeta `docs/` en `main` se armó una rama huérfana `gh-pages` con únicamente `privacy-policy.html` + `.nojekyll` en su raíz, y Pages apunta a esa rama (path `/`). El plan de trabajo (este archivo) y `prompt-app-android.md` quedan en `main`, en `notes/`, fuera de lo que Pages publica.
+- [x] `prompt-app-android.md` movido de la raíz a `notes/prompt-app-android.md` (no se publica: vive en `main`, no en `gh-pages`).
 - [ ] (Opcional) `CONTRIBUTING.md` si se espera que otros contribuyan.
 
 ---
@@ -147,7 +147,7 @@ resto son pasos en Play Console / Google Cloud Console, no código.
 - [ ] Habilitar **Play App Signing** en Play Console (subís tu "upload key", Google resigna con la suya) — flujo recomendado para apps nuevas.
 
 *Política de privacidad — necesita URL pública*
-- [x] Hosteada en GitHub Pages: `docs/privacy-policy.html` (ver Frente 5) — URL final: `https://santiagojorda.github.io/Baul/privacy-policy.html`.
+- [x] Hosteada en GitHub Pages vía la rama `gh-pages` (ver Frente 5) — URL final: `https://santiagojorda.github.io/Baul/privacy-policy.html`.
 - [ ] Verificar que la URL abre sin login una vez que GitHub termine de buildear el Pages (puede tardar uno o dos minutos después del push).
 
 *Verificación de OAuth (Google Cloud Console, aparte de Play)*
