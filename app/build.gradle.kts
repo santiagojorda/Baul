@@ -59,6 +59,22 @@ ksp {
 
 kover {
     reports {
+        filters {
+            excludes {
+                // UI visual (Compose) y bootstrap de la app: no se testea con unit tests, solo
+                // infla el denominador del % de coverage sin aportar señal real.
+                annotatedBy("androidx.compose.runtime.Composable")
+                classes(
+                    "com.santiagojorda.baul.MainActivity",
+                    "com.santiagojorda.baul.BaulApplication",
+                    "com.santiagojorda.baul.ui.theme.*",
+                    "com.santiagojorda.baul.ui.navigation.*",
+                    "com.santiagojorda.baul.ui.common.*",
+                    "com.santiagojorda.baul.widget.*",
+                    "com.santiagojorda.baul.ui.*.*Screen*",
+                )
+            }
+        }
         variant("debug") {
             xml {
                 onCheck = false
