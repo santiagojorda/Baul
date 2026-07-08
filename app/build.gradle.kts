@@ -20,7 +20,7 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.santiagojorda.baul"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.santiagojorda.baul"
