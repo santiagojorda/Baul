@@ -15,9 +15,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
 /**
- * Contra una base Room real en memoria (no un fake), para validar que la query SQL de
- * [UploadLogDao.pruneOlderThan] hace exactamente lo que dice — el resto de los tests de esta
- * lógica (ver UploadLogRepositoryTest) usan un fake y no ejercitan el SQL de verdad.
+ * Contra una base Room real en memoria (no un fake): [UploadLogRepositoryTest] usa un
+ * `FakeUploadLogDao` que nunca ejercita el SQL real de estas queries — en particular
+ * [UploadLogDao.countPendingDeletions], que depende de un JOIN entre `upload_log` y `rules`.
  */
 @RunWith(RobolectricTestRunner::class)
 class UploadLogDaoTest {
@@ -79,7 +79,77 @@ class UploadLogDaoTest {
         assertEquals(1, dao.getForRule(1).size)
     }
 
-    private suspend fun seedRule(id: Long) {
+    @Test
+    fun `getSuccessfulNotYetDeleted solo trae SUCCESS con sourceDeleted en false`() = runTest {
+        seedRule(id = 1)
+        dao.upsert(logEntity(id = 1, status = UploadStatus.SUCCESS, createdAt = 0))
+        dao.upsert(logEntity(id = 2, status = UploadStatus.FAILED, createdAt = 0))
+        dao.markSourceDeleted(listOf(1))
+        dao.upsert(logEntity(id = 3, status = UploadStatus.SUCCESS, createdAt = 0))
+
+        val pending = dao.getSuccessfulNotYetDeleted()
+
+        assertEquals(listOf(3L), pending.map { it.id })
+    }
+
+    @Test
+    fun `countPendingDeletions solo cuenta reglas que piden borrar el original`() = runTest {
+        seedRule(id = 1, deleteSourceAfterUpload = true)
+        seedRule(id = 2, deleteSourceAfterUpload = false)
+        dao.upsert(logEntity(id = 1, ruleId = 1, status = UploadStatus.SUCCESS, createdAt = 0))
+        dao.upsert(logEntity(id = 2, ruleId = 2, status = UploadStatus.SUCCESS, createdAt = 0))
+
+        assertEquals(1, dao.countPendingDeletions())
+    }
+
+    @Test
+    fun `countPendingDeletions no cuenta lo que ya se marco sourceDeleted`() = runTest {
+        seedRule(id = 1, deleteSourceAfterUpload = true)
+        dao.upsert(logEntity(id = 1, ruleId = 1, status = UploadStatus.SUCCESS, createdAt = 0))
+
+        dao.markSourceDeleted(listOf(1))
+
+        assertEquals(0, dao.countPendingDeletions())
+    }
+
+    @Test
+    fun `getLogForMedia devuelve el mas reciente cuando hay mas de un intento`() = runTest {
+        seedRule(id = 1)
+        dao.upsert(logEntity(id = 1, status = UploadStatus.FAILED, createdAt = 1000, mediaUri = "content://media/x"))
+        dao.upsert(logEntity(id = 2, status = UploadStatus.SUCCESS, createdAt = 2000, mediaUri = "content://media/x"))
+
+        val log = dao.getLogForMedia(ruleId = 1, mediaUri = "content://media/x")
+
+        assertEquals(2L, log?.id)
+    }
+
+    @Test
+    fun `countsByStatus agrupa correctamente por status`() = runTest {
+        seedRule(id = 1)
+        dao.upsert(logEntity(id = 1, status = UploadStatus.SUCCESS, createdAt = 0))
+        dao.upsert(logEntity(id = 2, status = UploadStatus.SUCCESS, createdAt = 0))
+        dao.upsert(logEntity(id = 3, status = UploadStatus.FAILED, createdAt = 0))
+
+        val counts = dao.countsByStatus().associate { it.status to it.count }
+
+        assertEquals(2, counts[UploadStatus.SUCCESS])
+        assertEquals(1, counts[UploadStatus.FAILED])
+    }
+
+    @Test
+    fun `updateProgress actualiza bytes sin tocar el status`() = runTest {
+        seedRule(id = 1)
+        dao.upsert(logEntity(id = 1, status = UploadStatus.UPLOADING, createdAt = 0))
+
+        dao.updateProgress(id = 1, bytesUploaded = 512, totalBytes = 1024, updatedAt = 999)
+
+        val log = requireNotNull(dao.getForRule(1).first())
+        assertEquals(512, log.bytesUploaded)
+        assertEquals(1024, log.totalBytes)
+        assertEquals(UploadStatus.UPLOADING, log.status)
+    }
+
+    private suspend fun seedRule(id: Long, deleteSourceAfterUpload: Boolean = true) {
         database.ruleDao().upsert(
             RuleEntity(
                 id = id,
@@ -87,14 +157,21 @@ class UploadLogDaoTest {
                 folderDisplayName = "Foo",
                 destinationType = DestinationType.GOOGLE_PHOTOS,
                 googleAccountEmail = "user@example.com",
+                deleteSourceAfterUpload = deleteSourceAfterUpload,
             ),
         )
     }
 
-    private fun logEntity(id: Long, status: UploadStatus, createdAt: Long) = UploadLogEntity(
+    private fun logEntity(
+        id: Long,
+        status: UploadStatus,
+        createdAt: Long,
+        ruleId: Long = 1,
+        mediaUri: String = "content://media/$id",
+    ) = UploadLogEntity(
         id = id,
-        ruleId = 1,
-        mediaUri = "content://media/$id",
+        ruleId = ruleId,
+        mediaUri = mediaUri,
         fileName = "IMG_000$id.jpg",
         status = status,
         createdAt = createdAt,

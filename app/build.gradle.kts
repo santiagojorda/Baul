@@ -100,11 +100,20 @@ kover {
                 // infla el denominador del % de coverage sin aportar señal real.
                 annotatedBy("androidx.compose.runtime.Composable")
                 classes(
+                    // OJO: acá "*" matchea cualquier secuencia de caracteres, incluidos los
+                    // puntos de subpaquetes siguientes — "com.santiagojorda.baul.*" a secas
+                    // excluiría TODO el árbol de la app, no solo este paquete raíz. Por eso cada
+                    // clase/paquete de acá abajo está listado explícito.
+                    //
                     // Wildcard al final en las dos de acá abajo para agarrar también las clases
                     // sintéticas que genera un lambda adentro (setContent {} de Compose): esas
                     // quedan como MainActivity$onCreate$1, no matchean un nombre exacto.
                     "com.santiagojorda.baul.MainActivity*",
                     "com.santiagojorda.baul.BaulApplication",
+                    // Idem, pero para el lambda de setContent {} en sí: Kotlin nombra esa clase
+                    // por el ARCHIVO (ComposableSingletons$MainActivityKt), no por la clase
+                    // MainActivity, así que ningún wildcard de arriba la agarra.
+                    "com.santiagojorda.baul.ComposableSingletons\$MainActivityKt",
                     "com.santiagojorda.baul.ui.theme.*",
                     "com.santiagojorda.baul.ui.navigation.*",
                     "com.santiagojorda.baul.ui.common.*",
@@ -124,14 +133,18 @@ kover {
                     // Idem wildcard: GoogleAuthManager tiene withContext { } / lambdas internos
                     // que Kotlin compila como clases separadas (GoogleAuthManager$metodo$N).
                     "com.santiagojorda.baul.auth.GoogleAuthManager*",
-                    "com.santiagojorda.baul.upload.GooglePhotosUploader",
-                    "com.santiagojorda.baul.upload.DriveUploader",
-                    "com.santiagojorda.baul.media.SyncCoordinator",
-                    "com.santiagojorda.baul.media.MediaMetadataReader",
-                    "com.santiagojorda.baul.media.MediaChangeObserver",
+                    // Wildcard en las cinco de acá abajo por el mismo motivo que GoogleAuthManager:
+                    // cada una tiene lambdas/coroutines internos que generan clases separadas
+                    // (ej. GooglePhotosUploader$upload$2, SyncCoordinator$onMediaChanged$1) que un
+                    // nombre exacto sin "*" no agarra y quedaban infiltrando el % sin querer.
+                    "com.santiagojorda.baul.upload.GooglePhotosUploader*",
+                    "com.santiagojorda.baul.upload.DriveUploader*",
+                    "com.santiagojorda.baul.media.SyncCoordinator*",
+                    "com.santiagojorda.baul.media.MediaMetadataReader*",
+                    "com.santiagojorda.baul.media.MediaChangeObserver*",
                     // FolderPlaceholder es pura interacción con ContentResolver/MediaStore real,
                     // sin lógica separable para testear; AllFilesAccess sí tiene test (más abajo).
-                    "com.santiagojorda.baul.storage.FolderPlaceholder",
+                    "com.santiagojorda.baul.storage.FolderPlaceholder*",
                 )
             }
         }
