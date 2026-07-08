@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidad de Baul</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fg: #1a1a1a;
+    --bg: #ffffff;
+    --muted: #55606b;
+    --border: #e2e6ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #e8eaed;
+      --bg: #14161a;
+      --muted: #9aa4af;
+      --border: #2a2f36;
+    }
+  }
+  body {
+    margin: 0;
+    padding: 2rem 1.25rem 4rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.25rem;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 2.2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.4rem;
+  }
+  .updated {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 0;
+  }
+  code {
+    background: var(--border);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  a { color: inherit; }
+  ul { padding-left: 1.3rem; }
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Política de Privacidad de Baul</h1>
+<p class="updated">Última actualización: 8 de julio de 2026</p>
+
+<p>Baul es una app de Android de código abierto que sincroniza fotos y videos desde carpetas de tu
+dispositivo hacia Google Photos o Google Drive, usando tu propia cuenta de Google. Esta política
+explica qué datos usa la app, cómo los usa y con quién se comparten.</p>
+
+<h2>Quién la desarrolla</h2>
+<p>Baul es un proyecto personal e independiente, sin empresa detrás. Contacto:
+<a href="mailto:santiagojorda@gmail.com">santiagojorda@gmail.com</a>. Código fuente disponible en
+<a href="https://github.com/santiagojorda/Baul">github.com/santiagojorda/Baul</a>.</p>
+
+<h2>No hay servidor: tus datos no pasan por nosotros</h2>
+<p>Baul <strong>no tiene backend propio</strong>. La app corre enteramente en tu teléfono y se
+comunica <strong>directamente</strong> con las APIs de Google usando tu cuenta. Ni el desarrollador
+ni ningún tercero reciben, ven o almacenan tus fotos, videos, ni tus credenciales de Google en
+ningún servidor intermedio.</p>
+
+<h2>Qué datos usa la app y para qué</h2>
+
+<p><strong>Datos de tu cuenta de Google.</strong> Cuando conectás una cuenta, Baul guarda
+localmente en el dispositivo (nunca en un servidor externo) tu dirección de email y nombre
+visible, para saber qué cuenta usar en cada regla de sincronización. La app no guarda tu
+contraseña ni un token de acceso permanente: cada vez que necesita subir un archivo, pide un token
+nuevo y de corta duración directamente a Google, que no queda persistido.</p>
+
+<p><strong>Permisos de Google que pide la app (scopes OAuth):</strong></p>
+<ul>
+  <li><code>drive.file</code> (Google Drive): permite crear y subir archivos a Drive, pero
+  <strong>solo</strong> a los archivos/carpetas que la propia app crea o que vos elegís
+  explícitamente — no puede ver ni tocar el resto de tu Drive.</li>
+  <li><code>photoslibrary.appendonly</code> (Google Photos): permite subir fotos/videos nuevos a
+  tu biblioteca, pero <strong>no</strong> permite leer, listar ni descargar contenido que ya
+  tenías.</li>
+  <li><code>photoslibrary.readonly.appcreateddata</code> (Google Photos): permite buscar
+  únicamente los álbumes que la propia app creó antes, para no duplicarlos al subir contenido
+  nuevo. No da acceso a otras fotos ni álbumes tuyos.</li>
+</ul>
+
+<p><strong>Metadata de archivos, guardada solo en tu dispositivo.</strong> Para saber qué se
+subió, qué falló y qué está pendiente, Baul guarda localmente (base de datos en tu teléfono) el
+nombre de archivo, tamaño, carpeta de origen, estado de subida y mensajes de error de cada archivo
+procesado. Esta información nunca sale del dispositivo salvo como parte de los archivos que vos
+mismo elegiste sincronizar.</p>
+
+<p><strong>Las fotos y videos en sí.</strong> Se suben directo desde tu teléfono al destino que
+configuraste (Google Photos o Drive), usando tu propia cuenta. Baul no los copia a ningún otro
+lugar ni los procesa en un servidor.</p>
+
+<p><strong>Borrado del original.</strong> Si activás "borrar original tras subir", la app borra el
+archivo de tu dispositivo únicamente después de que Google confirmó que la subida fue exitosa, y
+solo con tu confirmación explícita del sistema operativo (o con el permiso opcional "Acceso a
+todos los archivos", si lo otorgaste manualmente).</p>
+
+<h2>Lo que Baul NO hace</h2>
+<ul>
+  <li>No usa analítica, publicidad, ni rastreadores de terceros.</li>
+  <li>No vende ni comparte tus datos con nadie.</li>
+  <li>No accede a tus archivos si no le diste el permiso correspondiente.</li>
+  <li>No tiene acceso a tu contraseña de Google en ningún momento (el login lo maneja Google, no
+  la app).</li>
+</ul>
+
+<h2>Permisos del sistema Android que pide la app</h2>
+<ul>
+  <li><strong>Fotos y videos</strong> (o almacenamiento en versiones viejas de Android): para
+  detectar archivos nuevos en las carpetas que elegiste vigilar.</li>
+  <li><strong>Acceso a todos los archivos</strong> (opcional): solo si lo activás a mano en
+  Ajustes, para poder borrar el original sin mostrar el diálogo de confirmación del sistema en
+  cada archivo.</li>
+  <li><strong>Notificaciones:</strong> para mostrar el estado de la sincronización en curso.</li>
+  <li><strong>Internet:</strong> para subir los archivos a Google Photos/Drive.</li>
+</ul>
+
+<h2>Control y borrado de tus datos</h2>
+<ul>
+  <li>Podés revocar el acceso de Baul a tu cuenta de Google en cualquier momento desde
+  <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+  <li>Desinstalar la app borra toda la información local (reglas, historial, cuentas conectadas):
+  no queda nada guardado en ningún lado una vez desinstalada.</li>
+</ul>
+
+<h2>Menores de edad</h2>
+<p>Baul no está dirigida a niños y no recolecta a sabiendas datos de menores de 13 años.</p>
+
+<h2>Cambios a esta política</h2>
+<p>Si esta política cambia, se actualizará esta misma página con una nueva fecha de "última
+actualización". Cambios importantes se van a reflejar también en el repositorio del proyecto.</p>
+
+<footer>
+Dudas o reclamos sobre privacidad: <a href="mailto:santiagojorda@gmail.com">santiagojorda@gmail.com</a>
+</footer>
+
+</main>
+</body>
+</html>
