@@ -50,6 +50,19 @@ interface UploadLogDao {
 
     @Query("SELECT status, COUNT(*) AS count FROM upload_log GROUP BY status")
     suspend fun countsByStatus(): List<StatusCount>
+
+    /**
+     * Subidos con éxito, cuya regla pide borrar el original, y que todavía no se confirmaron
+     * (el pedido de borrado real necesita una Activity en pantalla — ver
+     * [com.santiagojorda.baul.ui.navigation.BaulApp] — así que si no abrís la app, se quedan acá
+     * juntándose sin liberar espacio en el celular).
+     */
+    @Query(
+        "SELECT COUNT(*) FROM upload_log ul " +
+            "INNER JOIN rules r ON r.id = ul.ruleId " +
+            "WHERE ul.status = 'SUCCESS' AND ul.sourceDeleted = 0 AND r.deleteSourceAfterUpload = 1",
+    )
+    suspend fun countPendingDeletions(): Int
 }
 
 /** Cuántos archivos hay en cada [UploadStatus], para el widget de pantalla de inicio. */

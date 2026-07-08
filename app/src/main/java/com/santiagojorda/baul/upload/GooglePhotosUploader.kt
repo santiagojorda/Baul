@@ -258,15 +258,27 @@ class GooglePhotosUploader(
  * como techo duro. Ante cualquier error de cuota baja de a uno (nunca por debajo de 1) y reinicia
  * el contador — así encuentra el límite real del momento en vez de tener que hardcodear uno.
  */
-private object AdaptiveWriteLimiter {
-    private const val MAX_CONCURRENCY = 3
-    private const val SUCCESSES_TO_GROW = 8
+internal object AdaptiveWriteLimiter {
+    internal const val MAX_CONCURRENCY = 3
+    internal const val SUCCESSES_TO_GROW = 8
 
     private val gate = Semaphore(permits = MAX_CONCURRENCY)
     private val stateLock = Mutex()
     private var softLimit = 1
     private var active = 0
     private var consecutiveSuccesses = 0
+
+    /** Solo para tests: el estado es de un `object` (singleton del proceso), así que cada test
+     *  necesita arrancar de un punto conocido en vez de depender del orden de ejecución. */
+    internal suspend fun resetForTesting() {
+        stateLock.withLock {
+            softLimit = 1
+            active = 0
+            consecutiveSuccesses = 0
+        }
+    }
+
+    internal suspend fun currentSoftLimit(): Int = stateLock.withLock { softLimit }
 
     suspend fun <T> withSlot(block: suspend () -> T): T {
         waitForSlot()

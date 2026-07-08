@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.withLock
  * Google Photos (carpeta nueva, no excluida). También se usa para el backfill: cuando se
  * crea/edita una regla, sincronizar lo que ya había en la carpeta antes de que existiera la regla.
  */
-class MediaSyncCoordinator(
+class SyncCoordinator(
     private val context: Context,
     private val database: AppDatabase,
     private val metadataReader: MediaMetadataReader,

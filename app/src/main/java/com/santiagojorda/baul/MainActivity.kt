@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import com.santiagojorda.baul.ui.navigation.MediaSyncApp
-import com.santiagojorda.baul.ui.theme.MediaSyncTheme
+import com.santiagojorda.baul.ui.navigation.BaulApp
+import com.santiagojorda.baul.ui.theme.BaulTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,9 +26,9 @@ class MainActivity : ComponentActivity() {
                 permissionLauncher.launch(runtimePermissions())
             }
 
-            MediaSyncTheme {
+            BaulTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MediaSyncApp()
+                    BaulApp()
                 }
             }
         }

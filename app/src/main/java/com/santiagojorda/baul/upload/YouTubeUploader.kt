@@ -134,7 +134,7 @@ class YouTubeUploader(
     }
 
     private companion object {
-        const val APPLICATION_NAME = "MediaSync"
+        const val APPLICATION_NAME = "Baul"
         const val DEFAULT_CATEGORY_ID = "22" // People & Blogs; la app no le pide categoría al usuario
     }
 }

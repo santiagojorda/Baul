@@ -3,7 +3,7 @@ package com.santiagojorda.baul.work
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.santiagojorda.baul.MediaSyncApplication
+import com.santiagojorda.baul.BaulApplication
 
 /**
  * Corre cada 15 min (el mínimo que permite WorkManager para trabajo periódico), sin importar si
@@ -17,12 +17,15 @@ class MediaScanWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val app = applicationContext as MediaSyncApplication
-        app.mediaSyncCoordinator.scanAndDispatchAll()
+        val app = applicationContext as BaulApplication
+        app.syncCoordinator.scanAndDispatchAll()
         return Result.success()
     }
 
     companion object {
         const val UNIQUE_WORK_NAME = "media-scan-periodic"
+
+        /** Nombre distinto al periódico: un tap del widget no debería tocar el ciclo de 15 min. */
+        const val MANUAL_TRIGGER_WORK_NAME = "media-scan-manual"
     }
 }

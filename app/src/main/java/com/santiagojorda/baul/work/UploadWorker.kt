@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.santiagojorda.baul.MediaSyncApplication
+import com.santiagojorda.baul.BaulApplication
 import com.santiagojorda.baul.data.local.AppDatabase
 import com.santiagojorda.baul.data.local.dao.UploadLogDao
 import com.santiagojorda.baul.data.local.entity.UploadLogEntity
@@ -65,7 +65,7 @@ class UploadWorker(
         )
         SyncStatusWidget().updateAll(applicationContext)
 
-        val app = applicationContext as MediaSyncApplication
+        val app = applicationContext as BaulApplication
         val destination = when (rule.destinationType) {
             DestinationType.YOUTUBE -> YouTubeUploader(
                 applicationContext,
@@ -95,7 +95,7 @@ class UploadWorker(
         // El borrado del original (si rule.deleteSourceAfterUpload) no se dispara acá: necesita
         // confirmación del sistema vía IntentSender, y este Worker no tiene Activity. En cambio,
         // se marca la subida como SUCCESS/sourceDeleted=false, y DeleteUploadedSourcesEffect (en
-        // MediaSyncApp) revisa los pendientes y pide la confirmación la próxima vez que se abre la app.
+        // BaulApp) revisa los pendientes y pide la confirmación la próxima vez que se abre la app.
 
         // Mientras todavía queden reintentos disponibles para un fallo transitorio, no se muestra
         // como error real en la UI (queda PENDING, "reintentando solo") — recién se marca FAILED

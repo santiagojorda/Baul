@@ -29,7 +29,7 @@ data class RuleEntity(
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     /**
-     * Para reglas creadas automáticamente (ver AutoSyncFolderPolicy/MediaSyncCoordinator): no
+     * Para reglas creadas automáticamente (ver AutoSyncFolderPolicy/SyncCoordinator): no
      * hay un árbol SAF elegido a mano, así que la ruta relativa a MediaStore se guarda directo
      * acá en vez de derivarla de [folderUri] (que para estas reglas queda vacío).
      */

@@ -7,7 +7,7 @@ import com.santiagojorda.baul.data.repository.RuleRepository
 import com.santiagojorda.baul.data.repository.UploadLogRepository
 import com.santiagojorda.baul.domain.model.Rule
 import com.santiagojorda.baul.domain.model.UploadStatus
-import com.santiagojorda.baul.media.MediaSyncCoordinator
+import com.santiagojorda.baul.media.SyncCoordinator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,7 +26,7 @@ data class RuleListItem(
 class RuleListViewModel(
     private val ruleRepository: RuleRepository,
     private val uploadLogRepository: UploadLogRepository,
-    private val mediaSyncCoordinator: MediaSyncCoordinator,
+    private val syncCoordinator: SyncCoordinator,
     private val excludedFolderRepository: ExcludedFolderRepository,
 ) : ViewModel() {
 
@@ -53,7 +53,7 @@ class RuleListViewModel(
             if (isActive) {
                 // Al prenderla, sincroniza ya lo que ya estaba en la carpeta en vez de esperar al
                 // próximo escaneo periódico (hasta 15 min) o a que se abra la app de nuevo.
-                mediaSyncCoordinator.backfillRule(rule.id)
+                syncCoordinator.backfillRule(rule.id)
             } else {
                 // Al apagarla, se corta lo que esté en vuelo pero se conserva el historial ya hecho.
                 uploadLogRepository.cancelActiveUploadsForRule(rule.id)

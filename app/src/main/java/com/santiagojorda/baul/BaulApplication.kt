@@ -12,7 +12,7 @@ import com.santiagojorda.baul.data.repository.RuleRepository
 import com.santiagojorda.baul.data.repository.UploadLogRepository
 import com.santiagojorda.baul.media.MediaChangeObserver
 import com.santiagojorda.baul.media.MediaMetadataReader
-import com.santiagojorda.baul.media.MediaSyncCoordinator
+import com.santiagojorda.baul.media.SyncCoordinator
 import com.santiagojorda.baul.upload.YouTubeQuotaTracker
 import com.santiagojorda.baul.work.MediaScanWorker
 import com.santiagojorda.baul.work.UploadNotificationService
@@ -24,7 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-class MediaSyncApplication : Application() {
+class BaulApplication : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -41,8 +41,8 @@ class MediaSyncApplication : Application() {
     }
     val googleAuthManager: GoogleAuthManager by lazy { GoogleAuthManager(this) }
     val youTubeQuotaTracker: YouTubeQuotaTracker by lazy { YouTubeQuotaTracker(database.youTubeQuotaDao()) }
-    val mediaSyncCoordinator: MediaSyncCoordinator by lazy {
-        MediaSyncCoordinator(
+    val syncCoordinator: SyncCoordinator by lazy {
+        SyncCoordinator(
             context = this,
             database = database,
             metadataReader = MediaMetadataReader(contentResolver),
@@ -55,7 +55,7 @@ class MediaSyncApplication : Application() {
 
         UploadNotificationService.createNotificationChannel(this)
 
-        val mediaChangeObserver = MediaChangeObserver(Handler(Looper.getMainLooper()), mediaSyncCoordinator::onMediaChanged)
+        val mediaChangeObserver = MediaChangeObserver(Handler(Looper.getMainLooper()), syncCoordinator::onMediaChanged)
 
         contentResolver.registerContentObserver(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, mediaChangeObserver)
         contentResolver.registerContentObserver(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, mediaChangeObserver)

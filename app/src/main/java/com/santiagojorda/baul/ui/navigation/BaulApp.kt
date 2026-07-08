@@ -45,7 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.santiagojorda.baul.MediaSyncApplication
+import com.santiagojorda.baul.BaulApplication
 import com.santiagojorda.baul.domain.model.UploadLogEntry
 import com.santiagojorda.baul.ui.accounts.AccountsScreen
 import com.santiagojorda.baul.ui.accounts.AccountsViewModel
@@ -61,14 +61,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private val bottomBarRoutes = setOf(MediaSyncDestinations.RULE_LIST, MediaSyncDestinations.HISTORY, MediaSyncDestinations.ACCOUNTS)
+private val bottomBarRoutes = setOf(BaulDestinations.RULE_LIST, BaulDestinations.HISTORY, BaulDestinations.ACCOUNTS)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MediaSyncApp() {
+fun BaulApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val app = context.applicationContext as MediaSyncApplication
+    val app = context.applicationContext as BaulApplication
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val snackbarHostState = remember { SnackbarHostState() }
@@ -79,11 +79,11 @@ fun MediaSyncApp() {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (currentRoute == MediaSyncDestinations.RULE_LIST) {
+            if (currentRoute == BaulDestinations.RULE_LIST) {
                 TopAppBar(
                     title = { Text("Reglas") },
                     actions = {
-                        IconButton(onClick = { navController.navigate(MediaSyncDestinations.EXCLUDED_FOLDERS) }) {
+                        IconButton(onClick = { navController.navigate(BaulDestinations.EXCLUDED_FOLDERS) }) {
                             Icon(Icons.Default.Block, contentDescription = "Carpetas excluidas del auto-sync")
                         }
                     },
@@ -94,20 +94,20 @@ fun MediaSyncApp() {
             if (currentRoute in bottomBarRoutes) {
                 NavigationBar {
                     NavigationBarItem(
-                        selected = currentRoute == MediaSyncDestinations.RULE_LIST,
-                        onClick = { navController.navigateToBottomBarRoute(MediaSyncDestinations.RULE_LIST) },
+                        selected = currentRoute == BaulDestinations.RULE_LIST,
+                        onClick = { navController.navigateToBottomBarRoute(BaulDestinations.RULE_LIST) },
                         icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
                         label = { Text("Reglas") },
                     )
                     NavigationBarItem(
-                        selected = currentRoute == MediaSyncDestinations.HISTORY,
-                        onClick = { navController.navigateToBottomBarRoute(MediaSyncDestinations.HISTORY) },
+                        selected = currentRoute == BaulDestinations.HISTORY,
+                        onClick = { navController.navigateToBottomBarRoute(BaulDestinations.HISTORY) },
                         icon = { Icon(Icons.Default.History, contentDescription = null) },
                         label = { Text("Historial") },
                     )
                     NavigationBarItem(
-                        selected = currentRoute == MediaSyncDestinations.ACCOUNTS,
-                        onClick = { navController.navigateToBottomBarRoute(MediaSyncDestinations.ACCOUNTS) },
+                        selected = currentRoute == BaulDestinations.ACCOUNTS,
+                        onClick = { navController.navigateToBottomBarRoute(BaulDestinations.ACCOUNTS) },
                         icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
                         label = { Text("Cuentas") },
                     )
@@ -115,8 +115,8 @@ fun MediaSyncApp() {
             }
         },
         floatingActionButton = {
-            if (currentRoute == MediaSyncDestinations.RULE_LIST) {
-                FloatingActionButton(onClick = { navController.navigate(MediaSyncDestinations.ruleEditorRoute()) }) {
+            if (currentRoute == BaulDestinations.RULE_LIST) {
+                FloatingActionButton(onClick = { navController.navigate(BaulDestinations.ruleEditorRoute()) }) {
                     Icon(Icons.Default.Add, contentDescription = "Nueva regla")
                 }
             }
@@ -124,17 +124,17 @@ fun MediaSyncApp() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = MediaSyncDestinations.RULE_LIST,
+            startDestination = BaulDestinations.RULE_LIST,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(MediaSyncDestinations.RULE_LIST) {
+            composable(BaulDestinations.RULE_LIST) {
                 val viewModel: RuleListViewModel = viewModel(
                     factory = viewModelFactory {
                         initializer {
                             RuleListViewModel(
                                 app.ruleRepository,
                                 app.uploadLogRepository,
-                                app.mediaSyncCoordinator,
+                                app.syncCoordinator,
                                 app.excludedFolderRepository,
                             )
                         }
@@ -142,19 +142,19 @@ fun MediaSyncApp() {
                 )
                 RuleListScreen(
                     viewModel = viewModel,
-                    onEditRule = { ruleId -> navController.navigate(MediaSyncDestinations.ruleEditorRoute(ruleId)) },
+                    onEditRule = { ruleId -> navController.navigate(BaulDestinations.ruleEditorRoute(ruleId)) },
                 )
             }
             composable(
-                route = MediaSyncDestinations.RULE_EDITOR_ROUTE,
+                route = BaulDestinations.RULE_EDITOR_ROUTE,
                 arguments = listOf(
-                    navArgument(MediaSyncDestinations.RULE_EDITOR_ARG_RULE_ID) {
+                    navArgument(BaulDestinations.RULE_EDITOR_ARG_RULE_ID) {
                         type = NavType.LongType
                         defaultValue = -1L
                     },
                 ),
             ) { entry ->
-                val ruleId = entry.arguments?.getLong(MediaSyncDestinations.RULE_EDITOR_ARG_RULE_ID) ?: -1L
+                val ruleId = entry.arguments?.getLong(BaulDestinations.RULE_EDITOR_ARG_RULE_ID) ?: -1L
                 val viewModel: RuleEditorViewModel = viewModel(
                     key = "rule_editor_$ruleId",
                     factory = viewModelFactory {
@@ -162,7 +162,7 @@ fun MediaSyncApp() {
                             RuleEditorViewModel(
                                 app.ruleRepository,
                                 app.connectedAccountRepository,
-                                app.mediaSyncCoordinator,
+                                app.syncCoordinator,
                                 ruleId.takeIf { it != -1L },
                             )
                         }
@@ -170,7 +170,7 @@ fun MediaSyncApp() {
                 )
                 RuleEditorScreen(viewModel = viewModel, onDone = { navController.popBackStack() })
             }
-            composable(MediaSyncDestinations.HISTORY) {
+            composable(BaulDestinations.HISTORY) {
                 val viewModel: HistoryViewModel = viewModel(
                     factory = viewModelFactory {
                         initializer { HistoryViewModel(app.uploadLogRepository, app.ruleRepository) }
@@ -178,7 +178,7 @@ fun MediaSyncApp() {
                 )
                 HistoryScreen(viewModel = viewModel)
             }
-            composable(MediaSyncDestinations.ACCOUNTS) {
+            composable(BaulDestinations.ACCOUNTS) {
                 val viewModel: AccountsViewModel = viewModel(
                     factory = viewModelFactory {
                         initializer { AccountsViewModel(app.connectedAccountRepository, app.googleAuthManager) }
@@ -186,7 +186,7 @@ fun MediaSyncApp() {
                 )
                 AccountsScreen(viewModel = viewModel, snackbarHostState = snackbarHostState)
             }
-            composable(MediaSyncDestinations.EXCLUDED_FOLDERS) {
+            composable(BaulDestinations.EXCLUDED_FOLDERS) {
                 val viewModel: ExcludedFoldersViewModel = viewModel(
                     factory = viewModelFactory {
                         initializer { ExcludedFoldersViewModel(app.excludedFolderRepository) }
@@ -212,7 +212,7 @@ private fun NavController.navigateToBottomBarRoute(route: String) {
  * pide borrar el original y todavía no se confirmó, se pide todo junto en un solo diálogo.
  */
 @Composable
-private fun DeleteUploadedSourcesEffect(app: MediaSyncApplication) {
+private fun DeleteUploadedSourcesEffect(app: BaulApplication) {
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
@@ -271,8 +271,8 @@ private fun mediaStoreRowExists(context: Context, uri: Uri): Boolean =
  * la app se corre un barrido completo de la MediaStore para agarrarlas también.
  */
 @Composable
-private fun ScanExistingFoldersEffect(app: MediaSyncApplication) {
+private fun ScanExistingFoldersEffect(app: BaulApplication) {
     LaunchedEffect(Unit) {
-        app.mediaSyncCoordinator.scanExistingFoldersForAutoSync()
+        app.syncCoordinator.scanExistingFoldersForAutoSync()
     }
 }

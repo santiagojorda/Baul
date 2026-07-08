@@ -11,7 +11,7 @@ import com.santiagojorda.baul.domain.model.GooglePhotosMetadata
 import com.santiagojorda.baul.domain.model.Rule
 import com.santiagojorda.baul.domain.model.YouTubeMetadata
 import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
-import com.santiagojorda.baul.media.MediaSyncCoordinator
+import com.santiagojorda.baul.media.SyncCoordinator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 class RuleEditorViewModel(
     private val ruleRepository: RuleRepository,
     connectedAccountRepository: ConnectedAccountRepository,
-    private val mediaSyncCoordinator: MediaSyncCoordinator,
+    private val syncCoordinator: SyncCoordinator,
     private val ruleId: Long?,
 ) : ViewModel() {
 
@@ -101,7 +101,7 @@ class RuleEditorViewModel(
                 isAutoCreated = state.folderRelativePath != null,
             )
             val savedId = ruleRepository.save(rule)
-            mediaSyncCoordinator.backfillRule(savedId)
+            syncCoordinator.backfillRule(savedId)
             _uiState.update { it.copy(isSaved = true) }
         }
     }

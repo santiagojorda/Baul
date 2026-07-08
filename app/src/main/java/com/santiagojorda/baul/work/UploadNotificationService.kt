@@ -95,7 +95,7 @@ class UploadNotificationService : Service() {
         )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setContentTitle("MediaSync")
+            .setContentTitle("Baúl")
             .setContentText(contentText)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -122,7 +122,7 @@ class UploadNotificationService : Service() {
 
         fun createNotificationChannel(context: Context) {
             val channel = NotificationChannel(CHANNEL_ID, "Subidas en curso", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Progreso de las subidas de MediaSync"
+                description = "Progreso de las subidas de Baúl"
                 setSound(null, null)
             }
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)

@@ -63,6 +63,7 @@ class UploadLogRepository(
     suspend fun markSourceDeleted(entries: List<UploadLogEntry>) {
         if (entries.isEmpty()) return
         uploadLogDao.markSourceDeleted(entries.map { it.id })
+        SyncStatusWidget().updateAll(context)
     }
 
     /** Cancela una subida en curso (o encolada), sin contarla como un error real. */

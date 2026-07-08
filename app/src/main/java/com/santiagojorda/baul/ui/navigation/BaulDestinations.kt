@@ -1,6 +1,6 @@
 package com.santiagojorda.baul.ui.navigation
 
-object MediaSyncDestinations {
+object BaulDestinations {
     const val RULE_LIST = "rule_list"
     const val HISTORY = "history"
     const val ACCOUNTS = "accounts"
