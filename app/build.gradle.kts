@@ -72,6 +72,17 @@ kover {
                     "com.santiagojorda.baul.ui.common.*",
                     "com.santiagojorda.baul.widget.*",
                     "com.santiagojorda.baul.ui.*.*Screen*",
+                    // Hablan de verdad con WorkManager, HTTP a las APIs de Google, o Google
+                    // Sign-In: no hay forma de fakearlos sin un seam de DI que hoy no existe. Se
+                    // dejan afuera del % en vez de simular tests que no prueban nada real.
+                    "com.santiagojorda.baul.work.*",
+                    "com.santiagojorda.baul.auth.GoogleAuthManager",
+                    "com.santiagojorda.baul.upload.YouTubeUploader",
+                    "com.santiagojorda.baul.upload.GooglePhotosUploader",
+                    "com.santiagojorda.baul.upload.DriveUploader",
+                    "com.santiagojorda.baul.media.SyncCoordinator",
+                    "com.santiagojorda.baul.media.MediaMetadataReader",
+                    "com.santiagojorda.baul.media.MediaChangeObserver",
                 )
             }
         }
