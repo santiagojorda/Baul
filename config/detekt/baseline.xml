@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:UploadWorker.kt:UploadWorker$override suspend fun doWork: Result</ID>
+    <ID>LongMethod:AccountsScreen.kt:@Composable fun AccountsScreen</ID>
+    <ID>LongMethod:BaulApp.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun BaulApp</ID>
+    <ID>LongMethod:RuleEditorScreen.kt:@Composable fun RuleEditorScreen</ID>
+    <ID>LongMethod:UploadWorker.kt:UploadWorker$override suspend fun doWork: Result</ID>
+    <ID>MagicNumber:GooglePhotosUploader.kt:AdaptiveWriteLimiter$200</ID>
+    <ID>MagicNumber:GooglePhotosUploader.kt:GooglePhotosUploader$200</ID>
+    <ID>MagicNumber:GooglePhotosUploader.kt:GooglePhotosUploader$299</ID>
+    <ID>MagicNumber:GooglePhotosUploader.kt:GooglePhotosUploader$429</ID>
+    <ID>MagicNumber:GooglePhotosUploader.kt:GooglePhotosUploader$500</ID>
+    <ID>MagicNumber:HistoryScreen.kt:100</ID>
+    <ID>MagicNumber:SyncStatusWidget.kt:0xFF3B82C4</ID>
+    <ID>MagicNumber:SyncStatusWidget.kt:0xFFD9463C</ID>
+    <ID>MagicNumber:SyncStatusWidget.kt:0xFFF2A93B</ID>
+    <ID>MagicNumber:UploadNotificationService.kt:UploadNotificationService$100</ID>
+    <ID>MatchingDeclarationName:UploadStatusPresentation.kt:StatusPresentation</ID>
+    <ID>MaxLineLength:AccountsViewModel.kt:AccountsViewModel$connectedAccountRepository.save(ConnectedAccount(email = result.email, displayName = result.displayName))</ID>
+    <ID>MaxLineLength:ConnectedAccountRepository.kt:ConnectedAccountRepository$/** La primera cuenta que se conecta queda default automáticamente; las siguientes no le pisan el default a la existente. */</ID>
+    <ID>MaxLineLength:ConnectedAccountRepository.kt:ConnectedAccountRepository$/** La que usa el auto-sync de carpetas nuevas. Si por algún motivo ninguna quedó marcada, cae a la primera conectada. */</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$PhotosApiException : Exception</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$UploadResult.Failure(message = "Respuesta inesperada de la Photos Library API: ${e.message}", retryable = true)</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$is TokenResult.Failure -&gt; return@withContext UploadResult.Failure(tokenResult.message, tokenResult.retryable)</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$message = "La cuenta ${rule.googleAccountEmail} necesita que la reautorices a mano (abrí la app y reconectala)"</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$override suspend</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$private</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$throw PhotosApiException(message ?: "La Photos Library API rechazó el ítem", retryable = isQuotaError, isQuota = isQuotaError)</ID>
+    <ID>MaxLineLength:GooglePhotosUploader.kt:GooglePhotosUploader$val</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:val uploadingNow = groups.flatMap { group -&gt; group.entries.filter { it.status == UploadStatus.UPLOADING }.map { group to it } }</ID>
+    <ID>MaxLineLength:HistoryViewModelTest.kt:FakeUploadLogDao$if (it.id == id) it.copy(bytesUploaded = bytesUploaded, totalBytes = totalBytes, updatedAt = updatedAt) else it</ID>
+    <ID>MaxLineLength:LogsViewModelTest.kt:FakeUploadLogDao$if (it.id == id) it.copy(bytesUploaded = bytesUploaded, totalBytes = totalBytes, updatedAt = updatedAt) else it</ID>
+    <ID>MaxLineLength:LogsViewModelTest.kt:LogsViewModelTest$private</ID>
+    <ID>MaxLineLength:LogsViewModelTest.kt:LogsViewModelTest$sampleLog(id = 2, ruleId = 1, status = UploadStatus.PENDING, errorMessage = "Timeout de red", updatedAt = 2000)</ID>
+    <ID>MaxLineLength:LogsViewModelTest.kt:LogsViewModelTest$sampleLog(id = 3, ruleId = 1, status = UploadStatus.FAILED, errorMessage = "Cuota excedida", updatedAt = 3000)</ID>
+    <ID>MaxLineLength:MainActivity.kt:MainActivity$arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.POST_NOTIFICATIONS)</ID>
+    <ID>MaxLineLength:RuleEditorScreen.kt:Switch(checked = state.deleteSourceAfterUpload, onCheckedChange = viewModel::onDeleteSourceAfterUploadChanged)</ID>
+    <ID>MaxLineLength:RuleEditorViewModel.kt:RuleEditorViewModel$fun</ID>
+    <ID>MaxLineLength:RuleEditorViewModelTest.kt:RuleEditorViewModelTest$fun</ID>
+    <ID>MaxLineLength:RuleListScreen.kt:Icon(imageVector = Icons.Default.Block, contentDescription = "Excluir carpeta (no volver a sincronizar sola)")</ID>
+    <ID>MaxLineLength:RuleListScreen.kt:text = destinationLabel(item.rule.destinationType) + if (item.rule.isAutoCreated) " · automática" else ""</ID>
+    <ID>MaxLineLength:RuleListViewModelTest.kt:FakeUploadLogDao$if (it.id == id) it.copy(bytesUploaded = bytesUploaded, totalBytes = totalBytes, updatedAt = updatedAt) else it</ID>
+    <ID>MaxLineLength:RuleListViewModelTest.kt:RuleListViewModelTest$WorkManagerTestInitHelper.initializeTestWorkManager(RuntimeEnvironment.getApplication(), Configuration.Builder().build())</ID>
+    <ID>MaxLineLength:SyncCoordinator.kt:SyncCoordinator$context.contentResolver.query(collection, arrayOf(MediaStore.MediaColumns._ID), selection, selectionArgs, null)</ID>
+    <ID>MaxLineLength:SyncCoordinator.kt:SyncCoordinator$val collections = listOf(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)</ID>
+    <ID>MaxLineLength:UploadLogRepository.kt:UploadLogRepository$/** Reintenta todos los archivos que quedaron en FAILED (error real, no uno que ya reintentó solo) para una regla. */</ID>
+    <ID>MaxLineLength:UploadLogRepositoryTest.kt:FakeUploadLogDao$if (it.id == id) it.copy(bytesUploaded = bytesUploaded, totalBytes = totalBytes, updatedAt = updatedAt) else it</ID>
+    <ID>MaxLineLength:UploadLogRepositoryTest.kt:UploadLogRepositoryTest$private</ID>
+    <ID>MaxLineLength:UploadNotificationService.kt:UploadNotificationService.Companion$val</ID>
+    <ID>MaxLineLength:UploadStatusPresentation.kt:UploadStatus.CANCELLED -&gt; StatusPresentation(label = "Cancelado", color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:UploadWorker.kt:UploadWorker$*</ID>
+    <ID>MaxLineLength:UploadWorker.kt:UploadWorker$val willRetry = uploadResult is UploadResult.Failure &amp;&amp; uploadResult.retryable &amp;&amp; runAttemptCount &lt; MAX_RETRY_ATTEMPTS</ID>
+    <ID>ReturnCount:AutoSyncFolderPolicy.kt:AutoSyncFolderPolicy$fun isExcluded: Boolean</ID>
+    <ID>ReturnCount:MediaMetadataReader.kt:MediaMetadataReader$fun read: MediaItemMetadata?</ID>
+    <ID>ReturnCount:RuleMatcher.kt:RuleMatcher$fun expectedRelativePath: String?</ID>
+    <ID>ReturnCount:RuleMatcher.kt:RuleMatcher$fun matches: Boolean</ID>
+    <ID>ReturnCount:SyncCoordinator.kt:SyncCoordinator$private suspend fun maybeAutoCreateRule: RuleEntity?</ID>
+    <ID>ReturnCount:UploadWorker.kt:UploadWorker$override suspend fun doWork: Result</ID>
+    <ID>SwallowedException:BaulApp.kt:e: IllegalArgumentException</ID>
+    <ID>SwallowedException:BaulApp.kt:e: SecurityException</ID>
+    <ID>TooGenericExceptionCaught:UploadWorker.kt:UploadWorker$e: Exception</ID>
+    <ID>TooManyFunctions:UploadLogDao.kt:UploadLogDao</ID>
+  </CurrentIssues>
+</SmellBaseline>

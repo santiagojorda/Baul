@@ -2,7 +2,6 @@ package com.santiagojorda.baul.ui.ruleeditor
 
 import com.santiagojorda.baul.domain.model.DestinationType
 import com.santiagojorda.baul.domain.model.Rule
-import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
 
 /**
  * Los campos de metadata por destino se guardan todos juntos y se filtran recién al armar el
@@ -13,12 +12,8 @@ import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
 data class RuleEditorUiState(
     val folderUri: String? = null,
     val folderDisplayName: String = "",
-    val destinationType: DestinationType = DestinationType.YOUTUBE,
+    val destinationType: DestinationType = DestinationType.GOOGLE_PHOTOS,
     val googleAccountEmail: String = "",
-    val youTubeChannelId: String = "",
-    val youTubePlaylistId: String = "",
-    val youTubePrivacyStatus: YouTubePrivacyStatus = YouTubePrivacyStatus.PRIVATE,
-    val youTubeTags: String = "",
     val photosAlbumName: String = "",
     val driveFolderId: String = "",
     val deleteSourceAfterUpload: Boolean = true,
@@ -42,7 +37,6 @@ data class RuleEditorUiState(
         get() = (!folderUri.isNullOrBlank() || folderRelativePath != null) &&
             googleAccountEmail.isNotBlank() &&
             when (destinationType) {
-                DestinationType.YOUTUBE -> youTubeChannelId.isNotBlank()
                 DestinationType.GOOGLE_PHOTOS -> photosAlbumName.isNotBlank()
                 DestinationType.DRIVE -> driveFolderId.isNotBlank()
             }
@@ -53,10 +47,6 @@ fun Rule.toEditorUiState(): RuleEditorUiState = RuleEditorUiState(
     folderDisplayName = folderDisplayName,
     destinationType = destinationType,
     googleAccountEmail = googleAccountEmail,
-    youTubeChannelId = youTubeMetadata?.channelId ?: "",
-    youTubePlaylistId = youTubeMetadata?.playlistId ?: "",
-    youTubePrivacyStatus = youTubeMetadata?.privacyStatus ?: YouTubePrivacyStatus.PRIVATE,
-    youTubeTags = youTubeMetadata?.tags?.joinToString(", ") ?: "",
     photosAlbumName = googlePhotosMetadata?.albumName ?: "",
     driveFolderId = driveMetadata?.destinationFolderId ?: "",
     deleteSourceAfterUpload = deleteSourceAfterUpload,

@@ -32,7 +32,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 import com.santiagojorda.baul.domain.model.DestinationType
-import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
 
 @Composable
 fun RuleEditorScreen(
@@ -109,7 +108,6 @@ fun RuleEditorScreen(
         }
 
         when (state.destinationType) {
-            DestinationType.YOUTUBE -> YouTubeFields(state, viewModel)
             DestinationType.GOOGLE_PHOTOS -> GooglePhotosFields(state, viewModel)
             DestinationType.DRIVE -> DriveFields(state, viewModel)
         }
@@ -142,37 +140,6 @@ fun RuleEditorScreen(
 }
 
 @Composable
-private fun YouTubeFields(state: RuleEditorUiState, viewModel: RuleEditorViewModel) {
-    OutlinedTextField(
-        value = state.youTubeChannelId,
-        onValueChange = viewModel::onYouTubeChannelIdChanged,
-        label = { Text("Channel ID") },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = state.youTubePlaylistId,
-        onValueChange = viewModel::onYouTubePlaylistIdChanged,
-        label = { Text("Playlist ID (opcional)") },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        YouTubePrivacyStatus.entries.forEach { status ->
-            FilterChip(
-                selected = state.youTubePrivacyStatus == status,
-                onClick = { viewModel.onYouTubePrivacyStatusChanged(status) },
-                label = { Text(privacyLabel(status)) },
-            )
-        }
-    }
-    OutlinedTextField(
-        value = state.youTubeTags,
-        onValueChange = viewModel::onYouTubeTagsChanged,
-        label = { Text("Tags (separados por coma)") },
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
 private fun GooglePhotosFields(state: RuleEditorUiState, viewModel: RuleEditorViewModel) {
     OutlinedTextField(
         value = state.photosAlbumName,
@@ -192,18 +159,11 @@ private fun DriveFields(state: RuleEditorUiState, viewModel: RuleEditorViewModel
     )
 }
 
-private val selectableDestinationTypes = listOf(DestinationType.YOUTUBE, DestinationType.GOOGLE_PHOTOS)
+private val selectableDestinationTypes = listOf(DestinationType.GOOGLE_PHOTOS)
 
 private fun destinationLabel(type: DestinationType): String = when (type) {
-    DestinationType.YOUTUBE -> "YouTube"
     DestinationType.GOOGLE_PHOTOS -> "Google Photos"
     DestinationType.DRIVE -> "Drive"
-}
-
-private fun privacyLabel(status: YouTubePrivacyStatus): String = when (status) {
-    YouTubePrivacyStatus.PRIVATE -> "Privado"
-    YouTubePrivacyStatus.UNLISTED -> "No listado"
-    YouTubePrivacyStatus.PUBLIC -> "Público"
 }
 
 private fun folderDisplayNameFrom(uri: Uri): String {

@@ -5,69 +5,11 @@ import com.santiagojorda.baul.domain.model.DestinationType
 import com.santiagojorda.baul.domain.model.DriveMetadata
 import com.santiagojorda.baul.domain.model.GooglePhotosMetadata
 import com.santiagojorda.baul.domain.model.Rule
-import com.santiagojorda.baul.domain.model.YouTubeMetadata
-import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class RuleMapperTest {
-
-    @Test
-    fun `entidad YouTube con channelId se mapea a YouTubeMetadata y el resto queda nulo`() {
-        val entity = RuleEntity(
-            id = 1,
-            folderUri = "content://tree/foo",
-            folderDisplayName = "Foo",
-            destinationType = DestinationType.YOUTUBE,
-            googleAccountEmail = "user@example.com",
-            youTubeChannelId = "channel-1",
-            youTubePlaylistId = "playlist-1",
-            youTubePrivacyStatus = YouTubePrivacyStatus.UNLISTED,
-            youTubeTags = listOf("tag1", "tag2"),
-        )
-
-        val domain = entity.toDomain()
-
-        assertEquals(
-            YouTubeMetadata(
-                channelId = "channel-1",
-                playlistId = "playlist-1",
-                privacyStatus = YouTubePrivacyStatus.UNLISTED,
-                tags = listOf("tag1", "tag2"),
-            ),
-            domain.youTubeMetadata,
-        )
-        assertNull(domain.googlePhotosMetadata)
-        assertNull(domain.driveMetadata)
-    }
-
-    @Test
-    fun `entidad YouTube sin channelId no genera metadata (fila inconsistente)`() {
-        val entity = RuleEntity(
-            folderUri = "content://tree/foo",
-            folderDisplayName = "Foo",
-            destinationType = DestinationType.YOUTUBE,
-            googleAccountEmail = "user@example.com",
-            youTubeChannelId = null,
-        )
-
-        assertNull(entity.toDomain().youTubeMetadata)
-    }
-
-    @Test
-    fun `youTubePrivacyStatus nulo en la entidad cae a PRIVATE por default en el dominio`() {
-        val entity = RuleEntity(
-            folderUri = "content://tree/foo",
-            folderDisplayName = "Foo",
-            destinationType = DestinationType.YOUTUBE,
-            googleAccountEmail = "user@example.com",
-            youTubeChannelId = "channel-1",
-            youTubePrivacyStatus = null,
-        )
-
-        assertEquals(YouTubePrivacyStatus.PRIVATE, entity.toDomain().youTubeMetadata?.privacyStatus)
-    }
 
     @Test
     fun `entidad GooglePhotos se mapea a GooglePhotosMetadata aunque no tenga albumId`() {
@@ -83,7 +25,6 @@ class RuleMapperTest {
         val domain = entity.toDomain()
 
         assertEquals(GooglePhotosMetadata(albumId = null, albumName = "Vacaciones"), domain.googlePhotosMetadata)
-        assertNull(domain.youTubeMetadata)
         assertNull(domain.driveMetadata)
     }
 
@@ -141,34 +82,7 @@ class RuleMapperTest {
     }
 
     @Test
-    fun `Rule con YouTubeMetadata se mapea a entidad con las columnas youtube pobladas y el resto nulas`() {
-        val rule = Rule(
-            folderUri = "content://tree/foo",
-            folderDisplayName = "Foo",
-            destinationType = DestinationType.YOUTUBE,
-            googleAccountEmail = "user@example.com",
-            youTubeMetadata = YouTubeMetadata(
-                channelId = "channel-1",
-                playlistId = "playlist-1",
-                privacyStatus = YouTubePrivacyStatus.PUBLIC,
-                tags = listOf("a"),
-            ),
-            createdAt = 1000,
-        )
-
-        val entity = rule.toEntity()
-
-        assertEquals("channel-1", entity.youTubeChannelId)
-        assertEquals("playlist-1", entity.youTubePlaylistId)
-        assertEquals(YouTubePrivacyStatus.PUBLIC, entity.youTubePrivacyStatus)
-        assertEquals(listOf("a"), entity.youTubeTags)
-        assertNull(entity.photosAlbumId)
-        assertNull(entity.photosAlbumName)
-        assertNull(entity.driveFolderId)
-    }
-
-    @Test
-    fun `toEntity con youTubeMetadata nulo deja youTubeTags como lista vacia, no null`() {
+    fun `toEntity con driveMetadata nulo deja photosAlbumId y photosAlbumName como null`() {
         val rule = Rule(
             folderUri = "content://tree/foo",
             folderDisplayName = "Foo",
@@ -180,9 +94,9 @@ class RuleMapperTest {
 
         val entity = rule.toEntity()
 
-        assertEquals(emptyList<String>(), entity.youTubeTags)
         assertEquals("folder-1", entity.driveFolderId)
-        assertNull(entity.youTubeChannelId)
+        assertNull(entity.photosAlbumId)
+        assertNull(entity.photosAlbumName)
     }
 
     @Test
@@ -208,9 +122,9 @@ class RuleMapperTest {
             id = 3,
             folderUri = "content://tree/foo",
             folderDisplayName = "Foo",
-            destinationType = DestinationType.YOUTUBE,
+            destinationType = DestinationType.DRIVE,
             googleAccountEmail = "user@example.com",
-            youTubeMetadata = YouTubeMetadata(channelId = "channel-1", tags = listOf("x", "y")),
+            driveMetadata = DriveMetadata(destinationFolderId = "folder-1"),
             deleteSourceAfterUpload = false,
             wifiOnly = false,
             isActive = true,

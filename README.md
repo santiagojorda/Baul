@@ -5,15 +5,15 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![minSdk](https://img.shields.io/badge/minSdk-30-blue)](app/build.gradle.kts)
 
-Baul is a native Android app that watches folders in your gallery and automatically uploads new photos and videos to the destination you configure — YouTube, Google Photos, or Google Drive — then deletes the local original once the upload is confirmed. No Tasker, no third-party automation, no manual exports.
+Baul is a native Android app that watches folders in your gallery and automatically uploads new photos and videos to the destination you configure — Google Photos or Google Drive — then deletes the local original once the upload is confirmed. No Tasker, no third-party automation, no manual exports.
 
-Instead of one fixed integration, Baul is built around configurable **rules**: each rule maps a folder to a destination with its own metadata (privacy, album, target folder, tags) and its own Google account, so you can run several rules at once — for example, a phone camera folder syncing to a private Google Photos album while a separate screen-recordings folder uploads unlisted to a specific YouTube channel.
+Instead of one fixed integration, Baul is built around configurable **rules**: each rule maps a folder to a destination with its own metadata (privacy, album, target folder, tags) and its own Google account, so you can run several rules at once — for example, a phone camera folder syncing to a private Google Photos album while a separate folder syncs to a specific Drive directory.
 
 ## Why Baul?
 
 Google Photos' own auto-backup only does one thing: send everything to Google Photos, on one active account, and leave the originals on the phone until you manually free up space. Baul exists to cover what that flow doesn't:
 
-- **More than one destination** — route different folders to YouTube, Drive, or Google Photos instead of everything going to the same place.
+- **More than one destination** — route different folders to Drive or Google Photos instead of everything going to the same place.
 - **More than one account, at once** — each rule can use a different Google account, running in parallel.
 - **Automatic storage cleanup** — the original is deleted as soon as the upload is confirmed, no manual "free up space" step.
 - **Per-folder rules instead of one global setting** — Wi-Fi-only, album, privacy, and destination are all configured per folder, not app-wide.
@@ -23,12 +23,11 @@ Baul isn't a gallery or a Google Photos replacement — it's the automation laye
 
 ## Features
 
-- **Rule-based auto-sync** — pick a folder via the system picker (SAF) and route it to YouTube, Google Photos, or Drive, each with destination-specific metadata.
+- **Rule-based auto-sync** — pick a folder via the system picker (SAF) and route it to Google Photos or Drive, each with destination-specific metadata.
 - **Multi-account support** — connect more than one Google account and assign a different account per rule.
 - **Real-time detection** — a `ContentObserver` on `MediaStore` picks up new files as soon as they land in a watched folder, no polling.
 - **Resilient background uploads** — `WorkManager` handles uploads with retry/backoff, survives process death, and respects a Wi-Fi-only setting per rule.
 - **Safe delete** — the original file is only removed (via `MediaStore.createDeleteRequest`) after the destination API confirms the upload succeeded. With the optional "All files access" permission granted, it deletes directly instead of prompting the system confirmation dialog every time.
-- **YouTube quota awareness** — tracks daily quota usage and queues remaining uploads for the next day instead of failing silently.
 - **Upload history** — a log of every processed file with its status (uploaded, error, pending/retrying) grouped by folder, with manual retry/cancel per file. A separate **Logs** view lists every file with a recorded error across all folders, so a transient failure doesn't stay hidden while it retries on its own.
 - **Home screen widget** — glanceable sync status without opening the app.
 - **Clip editor** — trim and concatenate clips from a folder into a single highlight video (via Media3 Transformer), which can then feed into a sync rule like any other output folder.
@@ -39,7 +38,7 @@ Baul isn't a gallery or a Google Photos replacement — it's the automation laye
 - Room for rules and upload history persistence
 - WorkManager for background uploads
 - Google Sign-In / Credential Manager for OAuth, multi-account
-- Official Google client libraries for Drive and the YouTube Data API v3 (resumable uploads)
+- Official Google client library for Drive (resumable uploads)
 - Photos Library API (`photoslibrary.appendonly` scope) for Google Photos
 - Media3 Transformer for clip trimming/concatenation
 - Kover for coverage, reported to Codecov via GitHub Actions
@@ -76,4 +75,4 @@ make apk-release # build the release APK — unsigned, no signingConfig configur
 
 ## License
 
-No license specified yet.
+MIT — see [LICENSE](LICENSE).

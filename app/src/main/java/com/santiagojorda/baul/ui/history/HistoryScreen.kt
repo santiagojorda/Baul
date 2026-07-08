@@ -130,8 +130,7 @@ private fun progressFraction(entry: UploadLogEntry): Float? =
 /**
  * Resumen fijo arriba de todo con lo que está subiendo en este momento, en cualquier carpeta.
  * Google Photos sube de a uno solo (ver [com.santiagojorda.baul.upload.GooglePhotosUploader]
- * para el por qué), así que en la práctica esta lista casi siempre tiene 0 o 1 elemento para esa
- * app; YouTube no tiene ese límite propio todavía y podría mostrar más de uno a la vez.
+ * para el por qué), así que en la práctica esta lista casi siempre tiene 0 o 1 elemento.
  */
 @Composable
 private fun UploadingNowCard(uploadingNow: List<Pair<HistoryGroup, UploadLogEntry>>) {

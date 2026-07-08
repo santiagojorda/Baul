@@ -9,8 +9,6 @@ import com.santiagojorda.baul.domain.model.DestinationType
 import com.santiagojorda.baul.domain.model.DriveMetadata
 import com.santiagojorda.baul.domain.model.GooglePhotosMetadata
 import com.santiagojorda.baul.domain.model.Rule
-import com.santiagojorda.baul.domain.model.YouTubeMetadata
-import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
 import com.santiagojorda.baul.media.SyncCoordinator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,15 +48,6 @@ class RuleEditorViewModel(
 
     fun onGoogleAccountEmailChanged(value: String) = _uiState.update { it.copy(googleAccountEmail = value) }
 
-    fun onYouTubeChannelIdChanged(value: String) = _uiState.update { it.copy(youTubeChannelId = value) }
-
-    fun onYouTubePlaylistIdChanged(value: String) = _uiState.update { it.copy(youTubePlaylistId = value) }
-
-    fun onYouTubePrivacyStatusChanged(value: YouTubePrivacyStatus) =
-        _uiState.update { it.copy(youTubePrivacyStatus = value) }
-
-    fun onYouTubeTagsChanged(value: String) = _uiState.update { it.copy(youTubeTags = value) }
-
     /** Si el usuario cambia el nombre a mano, se despega del álbum ya asociado (id viejo). */
     fun onPhotosAlbumNameChanged(value: String) = _uiState.update { it.copy(photosAlbumName = value, photosAlbumId = null) }
 
@@ -79,14 +68,6 @@ class RuleEditorViewModel(
                 folderDisplayName = state.folderDisplayName,
                 destinationType = state.destinationType,
                 googleAccountEmail = state.googleAccountEmail,
-                youTubeMetadata = if (state.destinationType == DestinationType.YOUTUBE) {
-                    YouTubeMetadata(
-                        channelId = state.youTubeChannelId,
-                        playlistId = state.youTubePlaylistId.ifBlank { null },
-                        privacyStatus = state.youTubePrivacyStatus,
-                        tags = state.youTubeTags.split(",").map { it.trim() }.filter { it.isNotEmpty() },
-                    )
-                } else null,
                 googlePhotosMetadata = if (state.destinationType == DestinationType.GOOGLE_PHOTOS) {
                     GooglePhotosMetadata(albumId = state.photosAlbumId, albumName = state.photosAlbumName)
                 } else null,

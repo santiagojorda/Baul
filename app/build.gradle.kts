@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kover)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -57,6 +58,13 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+detekt {
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+    baseline = file("$rootDir/config/detekt/baseline.xml")
+    parallel = true
+}
+
 kover {
     reports {
         filters {
@@ -78,11 +86,16 @@ kover {
                     // Hablan de verdad con WorkManager, HTTP a las APIs de Google, o Google
                     // Sign-In: no hay forma de fakearlos sin un seam de DI que hoy no existe. Se
                     // dejan afuera del % en vez de simular tests que no prueban nada real.
-                    "com.santiagojorda.baul.work.*",
+                    // UploadOutcomeResolver es la excepción: es la lógica pura que se extrajo de
+                    // UploadWorker.doWork() justamente para poder testearla sin WorkManager de por
+                    // medio (ver UploadOutcomeResolverTest), así que no entra en esta lista.
+                    "com.santiagojorda.baul.work.MediaScanWorker",
+                    "com.santiagojorda.baul.work.UploadWorkScheduler",
+                    "com.santiagojorda.baul.work.UploadNotificationService*",
+                    "com.santiagojorda.baul.work.UploadWorker*",
                     // Idem wildcard: GoogleAuthManager tiene withContext { } / lambdas internos
                     // que Kotlin compila como clases separadas (GoogleAuthManager$metodo$N).
                     "com.santiagojorda.baul.auth.GoogleAuthManager*",
-                    "com.santiagojorda.baul.upload.YouTubeUploader",
                     "com.santiagojorda.baul.upload.GooglePhotosUploader",
                     "com.santiagojorda.baul.upload.DriveUploader",
                     "com.santiagojorda.baul.media.SyncCoordinator",
@@ -128,15 +141,6 @@ dependencies {
     implementation(libs.glance.appwidget)
 
     implementation(libs.play.services.auth)
-
-    implementation(libs.google.api.client.android) {
-        exclude(group = "org.apache.httpcomponents")
-    }
-    implementation(libs.google.api.client.gson)
-    implementation(libs.google.http.client.android)
-    implementation(libs.google.api.services.youtube) {
-        exclude(group = "org.apache.httpcomponents")
-    }
 
     implementation(libs.media3.transformer)
     implementation(libs.media3.common)

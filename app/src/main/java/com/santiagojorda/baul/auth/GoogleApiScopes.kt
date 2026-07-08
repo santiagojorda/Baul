@@ -2,11 +2,10 @@ package com.santiagojorda.baul.auth
 
 /**
  * Scopes de las APIs que puede necesitar una regla, según su destino. Son strings planos (no
- * las constantes `DriveScopes`/`YouTubeScopes` de las librerías de cliente) para no depender
- * todavía de esas librerías solo por esto.
+ * la constante `DriveScopes` de la librería de cliente) para no depender todavía de esa librería
+ * solo por esto.
  */
 object GoogleApiScopes {
-    const val YOUTUBE_UPLOAD = "https://www.googleapis.com/auth/youtube.upload"
     const val DRIVE_FILE = "https://www.googleapis.com/auth/drive.file"
     const val PHOTOS_APPEND_ONLY = "https://www.googleapis.com/auth/photoslibrary.appendonly"
 
@@ -19,5 +18,5 @@ object GoogleApiScopes {
     const val PHOTOS_READONLY_APP_CREATED_DATA = "https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata"
 
     /** Se piden todos juntos al conectar una cuenta, para no repetir el consentimiento por regla. */
-    val ALL = setOf(YOUTUBE_UPLOAD, DRIVE_FILE, PHOTOS_APPEND_ONLY, PHOTOS_READONLY_APP_CREATED_DATA)
+    val ALL = setOf(DRIVE_FILE, PHOTOS_APPEND_ONLY, PHOTOS_READONLY_APP_CREATED_DATA)
 }

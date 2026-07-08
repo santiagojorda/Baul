@@ -13,7 +13,6 @@ import com.santiagojorda.baul.data.repository.UploadLogRepository
 import com.santiagojorda.baul.media.MediaChangeObserver
 import com.santiagojorda.baul.media.MediaMetadataReader
 import com.santiagojorda.baul.media.SyncCoordinator
-import com.santiagojorda.baul.upload.YouTubeQuotaTracker
 import com.santiagojorda.baul.work.MediaScanWorker
 import com.santiagojorda.baul.work.UploadNotificationService
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -40,7 +39,6 @@ class BaulApplication : Application() {
         ExcludedFolderRepository(database.excludedFolderDao())
     }
     val googleAuthManager: GoogleAuthManager by lazy { GoogleAuthManager(this) }
-    val youTubeQuotaTracker: YouTubeQuotaTracker by lazy { YouTubeQuotaTracker(database.youTubeQuotaDao()) }
     val syncCoordinator: SyncCoordinator by lazy {
         SyncCoordinator(
             context = this,

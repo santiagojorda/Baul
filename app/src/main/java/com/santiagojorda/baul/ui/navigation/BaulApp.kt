@@ -49,6 +49,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.santiagojorda.baul.BaulApplication
 import com.santiagojorda.baul.domain.model.UploadLogEntry
 import com.santiagojorda.baul.media.RuleMatcher
+import com.santiagojorda.baul.media.SafeDeleteCoordinator
 import com.santiagojorda.baul.storage.AllFilesAccess
 import com.santiagojorda.baul.storage.FolderPlaceholder
 import com.santiagojorda.baul.ui.accounts.AccountsScreen
@@ -257,42 +258,44 @@ private fun DeleteUploadedSourcesEffect(app: BaulApplication) {
         val pending = app.uploadLogRepository.getPendingDeletions()
         if (pending.isEmpty()) return@LaunchedEffect
 
+        val coordinator = SafeDeleteCoordinator(
+            mediaStillExists = { uri -> mediaStoreRowExists(context, uri) },
+            deleteDirectly = { uri -> context.contentResolver.delete(uri, null, null) },
+        )
+
         // Si el archivo ya no existe en MediaStore (borrado a mano, por otra app, o ya borrado
         // en una corrida anterior que no llegó a marcar la fila), createDeleteRequest tira
-        // IllegalArgumentException para TODO el lote y sin este filtro la app queda en un loop
-        // de crash al abrir, porque la fila pendiente nunca deja de estar pendiente.
-        val (missing, existing) = withContext(Dispatchers.IO) {
-            pending.partition { entry -> !mediaStoreRowExists(context, Uri.parse(entry.mediaUri)) }
+        // IllegalArgumentException para TODO el lote; el coordinator ya lo filtra antes de llegar
+        // ahí, así que este `outcome` nunca deja una fila pendiente por ese motivo.
+        val outcome = withContext(Dispatchers.IO) {
+            coordinator.resolve(pending, hasAllFilesAccess = AllFilesAccess.isGranted())
         }
-        if (missing.isNotEmpty()) {
-            app.uploadLogRepository.markSourceDeleted(missing)
+        if (outcome.alreadyGone.isNotEmpty()) {
+            app.uploadLogRepository.markSourceDeleted(outcome.alreadyGone)
         }
-        if (existing.isEmpty()) return@LaunchedEffect
+        if (outcome.existing.isEmpty()) return@LaunchedEffect
 
         withContext(Dispatchers.IO) {
             // Antes de borrar el/los últimos archivos de una carpeta, se deja un placeholder ahí
             // para que la carpeta nunca quede vacía (ver FolderPlaceholder).
-            existing.map { it.ruleId }.distinct().forEach { ruleId ->
+            outcome.existing.map { it.ruleId }.distinct().forEach { ruleId ->
                 val rule = app.database.ruleDao().getRuleById(ruleId) ?: return@forEach
                 val relativePath = RuleMatcher.expectedRelativePath(rule) ?: return@forEach
                 FolderPlaceholder.ensure(context.contentResolver, relativePath)
             }
         }
 
-        if (AllFilesAccess.isGranted()) {
-            // Con "Acceso a todos los archivos" otorgado no hace falta pedir confirmación al
-            // sistema: se borra directo, sin diálogo, ni al abrir la app ni nunca.
-            withContext(Dispatchers.IO) {
-                existing.forEach { entry -> context.contentResolver.delete(Uri.parse(entry.mediaUri), null, null) }
-            }
-            app.uploadLogRepository.markSourceDeleted(existing)
+        if (!outcome.requiresConfirmation) {
+            // El coordinator ya borró directo (AllFilesAccess otorgado): no hace falta pedir
+            // confirmación al sistema, ni diálogo, ni al abrir la app ni nunca.
+            app.uploadLogRepository.markSourceDeleted(outcome.existing)
             return@LaunchedEffect
         }
 
         if (activity == null) return@LaunchedEffect
-        pendingEntries = existing
+        pendingEntries = outcome.existing
         try {
-            val uris = existing.map { Uri.parse(it.mediaUri) }
+            val uris = outcome.existing.map { Uri.parse(it.mediaUri) }
             val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
             deleteLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
         } catch (e: IllegalArgumentException) {

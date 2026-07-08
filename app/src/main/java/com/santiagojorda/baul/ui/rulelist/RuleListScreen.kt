@@ -95,7 +95,6 @@ private fun RuleListRow(
 }
 
 private fun destinationLabel(type: DestinationType): String = when (type) {
-    DestinationType.YOUTUBE -> "YouTube"
     DestinationType.GOOGLE_PHOTOS -> "Google Photos"
     DestinationType.DRIVE -> "Drive"
 }

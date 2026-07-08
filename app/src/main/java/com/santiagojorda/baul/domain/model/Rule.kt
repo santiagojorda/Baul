@@ -1,9 +1,8 @@
 package com.santiagojorda.baul.domain.model
 
 /**
- * Una regla "carpeta -> destino con esta metadata". `youTubeMetadata`, `googlePhotosMetadata`
- * y `driveMetadata` son mutuamente excluyentes: solo el que corresponde a [destinationType]
- * debería estar presente.
+ * Una regla "carpeta -> destino con esta metadata". `googlePhotosMetadata` y `driveMetadata`
+ * son mutuamente excluyentes: solo el que corresponde a [destinationType] debería estar presente.
  */
 data class Rule(
     val id: Long = 0,
@@ -11,7 +10,6 @@ data class Rule(
     val folderDisplayName: String,
     val destinationType: DestinationType,
     val googleAccountEmail: String,
-    val youTubeMetadata: YouTubeMetadata? = null,
     val googlePhotosMetadata: GooglePhotosMetadata? = null,
     val driveMetadata: DriveMetadata? = null,
     val deleteSourceAfterUpload: Boolean = true,
@@ -20,13 +18,6 @@ data class Rule(
     val createdAt: Long = System.currentTimeMillis(),
     val folderRelativePath: String? = null,
     val isAutoCreated: Boolean = false,
-)
-
-data class YouTubeMetadata(
-    val channelId: String,
-    val playlistId: String? = null,
-    val privacyStatus: YouTubePrivacyStatus = YouTubePrivacyStatus.PRIVATE,
-    val tags: List<String> = emptyList(),
 )
 
 data class GooglePhotosMetadata(

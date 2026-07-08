@@ -108,6 +108,54 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+/**
+ * v9 -> v10: se elimina YouTube como destino soportado. Las reglas existentes con
+ * `destinationType = 'YOUTUBE'` (y su historial en `upload_log`) no tienen a donde mapear una vez
+ * que el enum pierde ese valor, así que se descartan antes de recrear `rules` sin las columnas
+ * `youTube*`. También se borra la tabla de cuota de YouTube.
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "DELETE FROM `upload_log` WHERE `ruleId` IN " +
+                "(SELECT `id` FROM `rules` WHERE `destinationType` = 'YOUTUBE')",
+        )
+        db.execSQL("DELETE FROM `rules` WHERE `destinationType` = 'YOUTUBE'")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `rules_new` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `folderUri` TEXT NOT NULL, `folderDisplayName` TEXT NOT NULL,
+                `destinationType` TEXT NOT NULL, `googleAccountEmail` TEXT NOT NULL,
+                `photosAlbumId` TEXT, `photosAlbumName` TEXT, `driveFolderId` TEXT,
+                `deleteSourceAfterUpload` INTEGER NOT NULL, `wifiOnly` INTEGER NOT NULL,
+                `isActive` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL,
+                `folderRelativePath` TEXT, `isAutoCreated` INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `rules_new` (`id`, `folderUri`, `folderDisplayName`, `destinationType`,
+                `googleAccountEmail`, `photosAlbumId`, `photosAlbumName`, `driveFolderId`,
+                `deleteSourceAfterUpload`, `wifiOnly`, `isActive`, `createdAt`,
+                `folderRelativePath`, `isAutoCreated`)
+            SELECT `id`, `folderUri`, `folderDisplayName`, `destinationType`,
+                `googleAccountEmail`, `photosAlbumId`, `photosAlbumName`, `driveFolderId`,
+                `deleteSourceAfterUpload`, `wifiOnly`, `isActive`, `createdAt`,
+                `folderRelativePath`, `isAutoCreated`
+            FROM `rules`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `rules`")
+        db.execSQL("ALTER TABLE `rules_new` RENAME TO `rules`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_upload_log_ruleId` ON `upload_log` (`ruleId`)")
+
+        db.execSQL("DROP TABLE IF EXISTS `youtube_quota_usage`")
+    }
+}
+
 val APP_DATABASE_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -116,4 +164,5 @@ val APP_DATABASE_MIGRATIONS = arrayOf(
     MIGRATION_5_6,
     MIGRATION_6_8,
     MIGRATION_8_9,
+    MIGRATION_9_10,
 )

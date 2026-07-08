@@ -45,7 +45,6 @@ class GoogleAuthManager(private val context: Context) {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestScopes(
-                Scope(GoogleApiScopes.YOUTUBE_UPLOAD),
                 Scope(GoogleApiScopes.DRIVE_FILE),
                 Scope(GoogleApiScopes.PHOTOS_APPEND_ONLY),
                 Scope(GoogleApiScopes.PHOTOS_READONLY_APP_CREATED_DATA),

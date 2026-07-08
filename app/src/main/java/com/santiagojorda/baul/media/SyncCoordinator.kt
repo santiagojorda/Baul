@@ -172,12 +172,9 @@ class SyncCoordinator(
 
     /**
      * Ya subido con éxito -> no repetir. Si no, se (re)encola: cubre pendientes, fallidos y
-     * archivos nuevos. Las reglas de YouTube ignoran directamente lo que no sea video (una foto
-     * en esa carpeta no tiene sentido subirla ahí).
+     * archivos nuevos.
      */
     private suspend fun dispatch(rule: RuleEntity, uri: Uri, mediaFile: MediaFile) {
-        if (rule.destinationType == DestinationType.YOUTUBE && !mediaFile.mimeType.startsWith("video/")) return
-
         val logDao = database.uploadLogDao()
         val existingLog = logDao.getLogForMedia(rule.id, uri.toString())
         if (existingLog?.status == UploadStatus.SUCCESS) return

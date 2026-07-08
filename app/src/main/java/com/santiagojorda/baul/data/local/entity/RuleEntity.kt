@@ -3,7 +3,6 @@ package com.santiagojorda.baul.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.santiagojorda.baul.domain.model.DestinationType
-import com.santiagojorda.baul.domain.model.YouTubePrivacyStatus
 
 /**
  * Fila plana con columnas nullable por destino en vez de polimorfismo, ya que Room no
@@ -17,10 +16,6 @@ data class RuleEntity(
     val folderDisplayName: String,
     val destinationType: DestinationType,
     val googleAccountEmail: String,
-    val youTubeChannelId: String? = null,
-    val youTubePlaylistId: String? = null,
-    val youTubePrivacyStatus: YouTubePrivacyStatus? = null,
-    val youTubeTags: List<String> = emptyList(),
     val photosAlbumId: String? = null,
     val photosAlbumName: String? = null,
     val driveFolderId: String? = null,

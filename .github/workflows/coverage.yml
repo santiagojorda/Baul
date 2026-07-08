@@ -18,6 +18,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Static analysis (detekt + Android Lint)
+        run: ./gradlew detekt lintDebug
+
       - name: Run unit tests with coverage
         run: ./gradlew testDebugUnitTest koverXmlReportDebug
 
