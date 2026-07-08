@@ -1,10 +1,15 @@
 package com.santiagojorda.baul.ui.history
 
+import androidx.work.Configuration
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.testing.WorkManagerTestInitHelper
 import com.santiagojorda.baul.data.local.dao.RuleDao
 import com.santiagojorda.baul.data.local.dao.StatusCount
 import com.santiagojorda.baul.data.local.dao.UploadLogDao
 import com.santiagojorda.baul.data.local.entity.RuleEntity
 import com.santiagojorda.baul.data.local.entity.UploadLogEntity
+import com.santiagojorda.baul.data.local.toDomain
 import com.santiagojorda.baul.data.repository.RuleRepository
 import com.santiagojorda.baul.data.repository.UploadLogRepository
 import com.santiagojorda.baul.domain.model.DestinationType
@@ -20,6 +25,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -95,8 +101,9 @@ private class FakeRuleDao : RuleDao {
 }
 
 /**
- * Robolectric solo hace falta para poder construir [UploadLogRepository] (pide un Context real);
- * ninguno de los métodos ejercitados acá (`groups`) lo llega a usar.
+ * Robolectric hace falta para poder construir [UploadLogRepository] (pide un Context real) y,
+ * para `retry`/`cancel`, porque terminan llamando a WorkManager de verdad vía
+ * [com.santiagojorda.baul.work.UploadWorkScheduler] (ver [WorkManagerTestInitHelper]).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -107,6 +114,10 @@ class HistoryViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+            RuntimeEnvironment.getApplication(),
+            Configuration.Builder().build(),
+        )
     }
 
     @After
@@ -176,6 +187,43 @@ class HistoryViewModelTest {
         assertEquals("Reciente", viewModel.groups.value.first().folderName)
 
         job.cancel()
+    }
+
+    @Test
+    fun `retry encola un work de subida para el archivo`() = runTest(testDispatcher) {
+        val uploadLogDao = FakeUploadLogDao()
+        val ruleDao = FakeRuleDao()
+        ruleDao.flow.value = listOf(sampleRule(id = 1, folderDisplayName = "Camera"))
+        val entry = sampleLog(id = 1, ruleId = 1, updatedAt = 1000)
+        uploadLogDao.flow.value = listOf(entry)
+        val viewModel = HistoryViewModel(
+            UploadLogRepository(RuntimeEnvironment.getApplication(), uploadLogDao, ruleDao),
+            RuleRepository(ruleDao),
+        )
+
+        viewModel.retry(entry.toDomain())
+
+        val workInfos = WorkManager.getInstance(RuntimeEnvironment.getApplication())
+            .getWorkInfosForUniqueWork("upload-1-${entry.mediaUri}")
+            .get()
+        assertTrue(workInfos.any { it.state == WorkInfo.State.ENQUEUED })
+    }
+
+    @Test
+    fun `cancel marca la entrada como CANCELLED`() = runTest(testDispatcher) {
+        val uploadLogDao = FakeUploadLogDao()
+        val ruleDao = FakeRuleDao()
+        ruleDao.flow.value = listOf(sampleRule(id = 1, folderDisplayName = "Camera"))
+        val entry = sampleLog(id = 1, ruleId = 1, updatedAt = 1000)
+        uploadLogDao.flow.value = listOf(entry)
+        val viewModel = HistoryViewModel(
+            UploadLogRepository(RuntimeEnvironment.getApplication(), uploadLogDao, ruleDao),
+            RuleRepository(ruleDao),
+        )
+
+        viewModel.cancel(entry.toDomain())
+
+        assertEquals(UploadStatus.CANCELLED, uploadLogDao.flow.value.first().status)
     }
 
     private fun sampleRule(id: Long, folderDisplayName: String) = RuleEntity(

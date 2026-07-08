@@ -1,10 +1,15 @@
 package com.santiagojorda.baul.data.repository
 
+import androidx.work.Configuration
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.testing.WorkManagerTestInitHelper
 import com.santiagojorda.baul.data.local.dao.RuleDao
 import com.santiagojorda.baul.data.local.dao.StatusCount
 import com.santiagojorda.baul.data.local.dao.UploadLogDao
 import com.santiagojorda.baul.data.local.entity.RuleEntity
 import com.santiagojorda.baul.data.local.entity.UploadLogEntity
+import com.santiagojorda.baul.data.local.toDomain
 import com.santiagojorda.baul.domain.model.DestinationType
 import com.santiagojorda.baul.domain.model.UploadStatus
 import kotlinx.coroutines.flow.Flow
@@ -13,17 +18,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/**
- * Solo cubre [UploadLogRepository.observeLogs] y [UploadLogRepository.getPendingDeletions]: son
- * los únicos métodos que no dependen de WorkManager/Glance (retry/cancel/markSourceDeleted sí, y
- * no hay work-testing en el proyecto para simularlos). El Context real de Robolectric solo hace
- * falta para poder construir el repositorio; estos dos métodos no lo tocan.
- */
 private class FakeUploadLogDao : UploadLogDao {
     val flow = MutableStateFlow<List<UploadLogEntity>>(emptyList())
 
@@ -107,6 +107,15 @@ class UploadLogRepositoryTest {
     private val uploadLogDao = FakeUploadLogDao()
     private val ruleDao = FakeRuleDaoForLogs()
     private val repository = UploadLogRepository(RuntimeEnvironment.getApplication(), uploadLogDao, ruleDao)
+
+    /** retry/cancel terminan llamando a WorkManager de verdad vía UploadWorkScheduler. */
+    @Before
+    fun setUp() {
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+            RuntimeEnvironment.getApplication(),
+            Configuration.Builder().build(),
+        )
+    }
 
     @Test
     fun `getPendingDeletions solo incluye subidas exitosas de reglas que piden borrar el original`() = runTest {
@@ -197,6 +206,81 @@ class UploadLogRepositoryTest {
 
         assertEquals(0, deleted)
         assertEquals(2, uploadLogDao.flow.value.size)
+    }
+
+    @Test
+    fun `retry encola un work de subida para el archivo`() = runTest {
+        ruleDao.rules[1] = sampleRule(id = 1, deleteSourceAfterUpload = true)
+        val entity = sampleLog(id = 1, ruleId = 1, status = UploadStatus.FAILED)
+        uploadLogDao.flow.value = listOf(entity)
+
+        repository.retry(entity.toDomain())
+
+        val workInfos = WorkManager.getInstance(RuntimeEnvironment.getApplication())
+            .getWorkInfosForUniqueWork("upload-1-${entity.mediaUri}")
+            .get()
+        assertTrue(workInfos.any { it.state == WorkInfo.State.ENQUEUED })
+    }
+
+    @Test
+    fun `retry no encola nada si la regla ya no existe`() = runTest {
+        val entity = sampleLog(id = 1, ruleId = 99, status = UploadStatus.FAILED)
+        uploadLogDao.flow.value = listOf(entity)
+
+        repository.retry(entity.toDomain())
+
+        val workInfos = WorkManager.getInstance(RuntimeEnvironment.getApplication())
+            .getWorkInfosForUniqueWork("upload-99-${entity.mediaUri}")
+            .get()
+        assertTrue(workInfos.isEmpty())
+    }
+
+    @Test
+    fun `cancel marca la entrada como CANCELLED con mensaje`() = runTest {
+        val entity = sampleLog(id = 1, ruleId = 1, status = UploadStatus.UPLOADING)
+        uploadLogDao.flow.value = listOf(entity)
+
+        repository.cancel(entity.toDomain())
+
+        val updated = uploadLogDao.flow.value.first()
+        assertEquals(UploadStatus.CANCELLED, updated.status)
+        assertEquals("Cancelado por el usuario", updated.errorMessage)
+    }
+
+    @Test
+    fun `retryAllFailedForRule encola un work por cada FAILED de la regla`() = runTest {
+        ruleDao.rules[1] = sampleRule(id = 1, deleteSourceAfterUpload = true)
+        val failed1 = sampleLog(id = 1, ruleId = 1, status = UploadStatus.FAILED)
+        val failed2 = sampleLog(id = 2, ruleId = 1, status = UploadStatus.FAILED)
+        val success = sampleLog(id = 3, ruleId = 1, status = UploadStatus.SUCCESS)
+        uploadLogDao.flow.value = listOf(failed1, failed2, success)
+
+        repository.retryAllFailedForRule(1)
+
+        val workManager = WorkManager.getInstance(RuntimeEnvironment.getApplication())
+        assertTrue(
+            workManager.getWorkInfosForUniqueWork("upload-1-${failed1.mediaUri}").get()
+                .any { it.state == WorkInfo.State.ENQUEUED },
+        )
+        assertTrue(
+            workManager.getWorkInfosForUniqueWork("upload-1-${failed2.mediaUri}").get()
+                .any { it.state == WorkInfo.State.ENQUEUED },
+        )
+    }
+
+    @Test
+    fun `cancelActiveUploadsForRule cancela PENDING y UPLOADING pero no toca SUCCESS`() = runTest {
+        val pending = sampleLog(id = 1, ruleId = 1, status = UploadStatus.PENDING)
+        val uploading = sampleLog(id = 2, ruleId = 1, status = UploadStatus.UPLOADING)
+        val success = sampleLog(id = 3, ruleId = 1, status = UploadStatus.SUCCESS)
+        uploadLogDao.flow.value = listOf(pending, uploading, success)
+
+        repository.cancelActiveUploadsForRule(1)
+
+        val statusById = uploadLogDao.flow.value.associate { it.id to it.status }
+        assertEquals(UploadStatus.CANCELLED, statusById[1L])
+        assertEquals(UploadStatus.CANCELLED, statusById[2L])
+        assertEquals(UploadStatus.SUCCESS, statusById[3L])
     }
 
     private fun sampleRule(id: Long, deleteSourceAfterUpload: Boolean) = RuleEntity(
