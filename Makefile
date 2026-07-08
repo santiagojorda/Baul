@@ -9,7 +9,7 @@ ADB := $(ANDROID_HOME)/platform-tools/adb
 GRADLE := JAVA_HOME=$(JAVA_HOME) PATH="$(JAVA_HOME)/bin:$(ANDROID_HOME)/platform-tools:$$PATH" ./gradlew
 PACKAGE := com.santiagojorda.baul
 
-.PHONY: help test devices install reinstall uninstall apk apk-release
+.PHONY: help test devices install reinstall uninstall apk apk-release logs
 
 help:
 	@echo "Targets disponibles:"
@@ -20,6 +20,7 @@ help:
 	@echo "  make uninstall   - solo desinstala Baul del celular (pide confirmacion)"
 	@echo "  make apk         - genera la APK debug (firmada con la clave de debug)"
 	@echo "  make apk-release - genera la APK release (sin firmar, sin minify)"
+	@echo "  make logs        - sigue el logcat del celular filtrado a Baul (Ctrl+C para cortar)"
 
 test:
 	$(GRADLE) testDebugUnitTest --console=plain
@@ -48,3 +49,11 @@ uninstall:
 	fi
 
 reinstall: uninstall install
+
+# Filtra por el nombre del paquete en vez de --pid=$$(adb shell pidof ...) a propósito: --pid
+# necesita que el proceso ya esté vivo al arrancar el comando, y se corta si Android lo mata y
+# WorkManager lo relanza (algo que pasa seguido justamente cuando querés ver qué está pasando).
+# Filtrando por texto sigue andando ante reinicios del proceso, y las stack traces de un crash
+# real (AndroidRuntime) igual mencionan el paquete en cada frame.
+logs: devices
+	$(ADB) logcat | grep --line-buffered -i $(PACKAGE)

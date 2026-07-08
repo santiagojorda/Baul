@@ -8,6 +8,7 @@ import com.santiagojorda.baul.auth.GoogleAuthManager
 import com.santiagojorda.baul.auth.SignInResult
 import com.santiagojorda.baul.data.repository.ConnectedAccountRepository
 import com.santiagojorda.baul.domain.model.ConnectedAccount
+import com.santiagojorda.baul.media.SyncCoordinator
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ sealed interface AccountsEvent {
 class AccountsViewModel(
     private val connectedAccountRepository: ConnectedAccountRepository,
     private val authManager: GoogleAuthManager,
+    private val syncCoordinator: SyncCoordinator,
 ) : ViewModel() {
 
     val accounts: StateFlow<List<ConnectedAccount>> = connectedAccountRepository.observeAccounts()
@@ -45,6 +47,11 @@ class AccountsViewModel(
             when (val result = authManager.handleSignInResult(data)) {
                 is SignInResult.Success -> {
                     connectedAccountRepository.save(ConnectedAccount(email = result.email, displayName = result.displayName))
+                    // Si esta es la primera cuenta, el barrido de carpetas existentes que corrió
+                    // al abrir la app (ver ScanExistingFoldersEffect) ya se ejecutó sin ninguna
+                    // cuenta conectada y no creó nada — sin esto, esas carpetas no aparecerían en
+                    // Reglas hasta el próximo MediaScanWorker periódico (hasta 15 min después).
+                    syncCoordinator.scanExistingFoldersForAutoSync()
                 }
                 is SignInResult.Failure -> _events.send(AccountsEvent.Error(result.message))
             }

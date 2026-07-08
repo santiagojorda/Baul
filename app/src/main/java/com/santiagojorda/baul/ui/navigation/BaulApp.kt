@@ -210,7 +210,13 @@ fun BaulApp() {
             composable(BaulDestinations.ACCOUNTS) {
                 val viewModel: AccountsViewModel = viewModel(
                     factory = viewModelFactory {
-                        initializer { AccountsViewModel(app.connectedAccountRepository, app.googleAuthManager) }
+                        initializer {
+                            AccountsViewModel(
+                                app.connectedAccountRepository,
+                                app.googleAuthManager,
+                                app.syncCoordinator,
+                            )
+                        }
                     },
                 )
                 AccountsScreen(viewModel = viewModel, snackbarHostState = snackbarHostState)

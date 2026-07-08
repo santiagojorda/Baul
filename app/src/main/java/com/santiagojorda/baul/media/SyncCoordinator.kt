@@ -22,8 +22,12 @@ import kotlinx.coroutines.sync.withLock
  * Si ninguna regla matchea, evalúa [AutoSyncFolderPolicy] para crear una regla automática a
  * Google Photos (carpeta nueva, no excluida). También se usa para el backfill: cuando se
  * crea/edita una regla, sincronizar lo que ya había en la carpeta antes de que existiera la regla.
+ *
+ * `open` (clase y [scanExistingFoldersForAutoSync]) a propósito: deja fakear en tests que solo
+ * necesitan verificar que *se dispara* un barrido (ej. al conectar una cuenta), sin arrastrar
+ * MediaStore real ni el executor async de Room que usa el barrido de verdad.
  */
-class SyncCoordinator(
+open class SyncCoordinator(
     private val context: Context,
     private val database: AppDatabase,
     private val metadataReader: MediaMetadataReader,
@@ -115,8 +119,8 @@ class SyncCoordinator(
             .forEach { relativePath -> maybeAutoCreateRule(relativePath) }
     }
 
-    /** Versión "fire and forget" para disparar desde un LaunchedEffect al abrir la app. */
-    fun scanExistingFoldersForAutoSync() {
+    /** Versión "fire and forget" para disparar desde un LaunchedEffect al abrir la app, o al conectar una cuenta. */
+    open fun scanExistingFoldersForAutoSync() {
         scope.launch { scanAndDispatchAll() }
     }
 

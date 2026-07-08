@@ -37,9 +37,13 @@ sealed interface TokenResult {
  *
  * Google marca GoogleSignInClient/GoogleAuthUtil como deprecados a favor de Credential Manager +
  * AuthorizationClient; el @Suppress de acá abajo es a propósito, no un descuido.
+ *
+ * `open` (clase y `handleSignInResult`) a propósito: es la única forma de simular un sign-in
+ * exitoso en tests sin agregar Mockito — `GoogleSignIn.getSignedInAccountFromIntent` es una
+ * llamada real a Play Services que no se puede fakear con un Intent de mentira.
  */
 @Suppress("DEPRECATION")
-class GoogleAuthManager(private val context: Context) {
+open class GoogleAuthManager(private val context: Context) {
 
     private fun signInOptions(): GoogleSignInOptions =
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -54,7 +58,7 @@ class GoogleAuthManager(private val context: Context) {
     fun signInIntent(activity: Activity): Intent =
         GoogleSignIn.getClient(activity, signInOptions()).signInIntent
 
-    suspend fun handleSignInResult(data: Intent?): SignInResult {
+    open suspend fun handleSignInResult(data: Intent?): SignInResult {
         return try {
             val account = GoogleSignIn.getSignedInAccountFromIntent(data).await()
             val email = account.email
