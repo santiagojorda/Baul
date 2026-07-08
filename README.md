@@ -9,6 +9,18 @@ Baul is a native Android app that watches folders in your gallery and automatica
 
 Instead of one fixed integration, Baul is built around configurable **rules**: each rule maps a folder to a destination with its own metadata (privacy, album, target folder, tags) and its own Google account, so you can run several rules at once — for example, a phone camera folder syncing to a private Google Photos album while a separate screen-recordings folder uploads unlisted to a specific YouTube channel.
 
+## Why Baul?
+
+Google Photos' own auto-backup only does one thing: send everything to Google Photos, on one active account, and leave the originals on the phone until you manually free up space. Baul exists to cover what that flow doesn't:
+
+- **More than one destination** — route different folders to YouTube, Drive, or Google Photos instead of everything going to the same place.
+- **More than one account, at once** — each rule can use a different Google account, running in parallel.
+- **Automatic storage cleanup** — the original is deleted as soon as the upload is confirmed, no manual "free up space" step.
+- **Per-folder rules instead of one global setting** — Wi-Fi-only, album, privacy, and destination are all configured per folder, not app-wide.
+- **Visibility into the upload queue** — a history and error log per file, with manual retry/cancel, instead of a black-box sync spinner.
+
+Baul isn't a gallery or a Google Photos replacement — it's the automation layer on top that decides where each folder's files go and cleans up after itself.
+
 ## Features
 
 - **Rule-based auto-sync** — pick a folder via the system picker (SAF) and route it to YouTube, Google Photos, or Drive, each with destination-specific metadata.
