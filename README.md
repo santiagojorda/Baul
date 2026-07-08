@@ -37,7 +37,7 @@ Baul isn't a gallery or a Google Photos replacement — it's the automation laye
 - Kotlin + Jetpack Compose, MVVM with domain/data separation
 - Room for rules and upload history persistence
 - WorkManager for background uploads
-- Google Sign-In / Credential Manager for OAuth, multi-account
+- Google Sign-In (`GoogleSignInClient` + `GoogleAuthUtil`) for OAuth, multi-account — chosen over Credential Manager, which can't refresh a token from a background Worker without an Activity
 - Official Google client library for Drive (resumable uploads)
 - Photos Library API (`photoslibrary.appendonly` scope) for Google Photos
 - Media3 Transformer for clip trimming/concatenation
@@ -68,10 +68,14 @@ make install     # build and install the debug build on the connected phone
 make uninstall   # uninstall the app from the phone (asks for confirmation — wipes rules/history/Google accounts)
 make reinstall   # uninstall + install (use this if adb reports INSTALL_FAILED_UPDATE_INCOMPATIBLE)
 make apk         # build the debug APK (app/build/outputs/apk/debug/app-debug.apk)
-make apk-release # build the release APK — unsigned, no signingConfig configured yet
+make apk-release # build the release APK — signed if keystore.properties exists (see keystore.properties.example), unsigned otherwise
 ```
 
 `JAVA_HOME` and `ANDROID_HOME` default to `~/.jdks/jdk-17.0.19+10` and `~/Android/Sdk`; override either with `make install JAVA_HOME=/path/to/jdk-17` if yours live elsewhere.
+
+## Privacy Policy
+
+[santiagojorda.github.io/Baul/privacy-policy.html](https://santiagojorda.github.io/Baul/privacy-policy.html)
 
 ## License
 
