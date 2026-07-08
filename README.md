@@ -1,7 +1,7 @@
 # Baul
 
 [![Tests](https://github.com/santiagojorda/Baul/actions/workflows/coverage.yml/badge.svg)](https://github.com/santiagojorda/Baul/actions/workflows/coverage.yml)
-[![codecov](https://codecov.io/gh/santiagojorda/Baul/branch/main/graph/badge.svg)](https://codecov.io/gh/santiagojorda/Baul)
+[![codecov](https://codecov.io/github/santiagojorda/Baul/graph/badge.svg?token=ANMJ48YDG6)](https://codecov.io/github/santiagojorda/Baul)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![minSdk](https://img.shields.io/badge/minSdk-30-blue)](app/build.gradle.kts)
 
