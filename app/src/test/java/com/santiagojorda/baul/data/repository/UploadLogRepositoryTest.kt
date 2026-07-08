@@ -70,6 +70,17 @@ private class FakeUploadLogDao : UploadLogDao {
 
     override suspend fun countPendingDeletions(): Int =
         flow.value.count { it.status == UploadStatus.SUCCESS && !it.sourceDeleted }
+
+    override suspend fun pruneOlderThan(successAndCancelledCutoff: Long, failedCutoff: Long): Int {
+        val before = flow.value.size
+        flow.value = flow.value.filterNot { entry ->
+            val terminalOld = (entry.status == UploadStatus.SUCCESS || entry.status == UploadStatus.CANCELLED) &&
+                entry.createdAt < successAndCancelledCutoff
+            val failedOld = entry.status == UploadStatus.FAILED && entry.createdAt < failedCutoff
+            terminalOld || failedOld
+        }
+        return before - flow.value.size
+    }
 }
 
 private class FakeRuleDaoForLogs : RuleDao {
@@ -138,6 +149,54 @@ class UploadLogRepositoryTest {
 
         assertEquals(1, logs.size)
         assertEquals(UploadStatus.PENDING, logs[0].status)
+    }
+
+    @Test
+    fun `pruneOldEntries borra SUCCESS y CANCELLED viejos pero conserva los recientes`() = runTest {
+        val now = 1_000_000_000_000L
+        val old = now - UploadLogRepository.SUCCESS_AND_CANCELLED_RETENTION_MS - 1
+        val recent = now - 1
+        uploadLogDao.flow.value = listOf(
+            sampleLog(id = 1, ruleId = 1, status = UploadStatus.SUCCESS).copy(createdAt = old),
+            sampleLog(id = 2, ruleId = 1, status = UploadStatus.CANCELLED).copy(createdAt = old),
+            sampleLog(id = 3, ruleId = 1, status = UploadStatus.SUCCESS).copy(createdAt = recent),
+        )
+
+        val deleted = repository.pruneOldEntries(now)
+
+        assertEquals(2, deleted)
+        assertEquals(listOf(3L), uploadLogDao.flow.value.map { it.id })
+    }
+
+    @Test
+    fun `pruneOldEntries conserva FAILED hasta su propio corte, mas largo que el de SUCCESS`() = runTest {
+        val now = 1_000_000_000_000L
+        val pastSuccessCutoffButNotFailed = now - UploadLogRepository.SUCCESS_AND_CANCELLED_RETENTION_MS - 1
+        val pastFailedCutoff = now - UploadLogRepository.FAILED_RETENTION_MS - 1
+        uploadLogDao.flow.value = listOf(
+            sampleLog(id = 1, ruleId = 1, status = UploadStatus.FAILED).copy(createdAt = pastSuccessCutoffButNotFailed),
+            sampleLog(id = 2, ruleId = 1, status = UploadStatus.FAILED).copy(createdAt = pastFailedCutoff),
+        )
+
+        val deleted = repository.pruneOldEntries(now)
+
+        assertEquals(1, deleted)
+        assertEquals(listOf(1L), uploadLogDao.flow.value.map { it.id })
+    }
+
+    @Test
+    fun `pruneOldEntries nunca borra PENDING o UPLOADING sin importar la antiguedad`() = runTest {
+        val now = 1_000_000_000_000L
+        val ancient = 0L
+        uploadLogDao.flow.value = listOf(
+            sampleLog(id = 1, ruleId = 1, status = UploadStatus.PENDING).copy(createdAt = ancient),
+            sampleLog(id = 2, ruleId = 1, status = UploadStatus.UPLOADING).copy(createdAt = ancient),
+        )
+
+        val deleted = repository.pruneOldEntries(now)
+
+        assertEquals(0, deleted)
+        assertEquals(2, uploadLogDao.flow.value.size)
     }
 
     private fun sampleRule(id: Long, deleteSourceAfterUpload: Boolean) = RuleEntity(

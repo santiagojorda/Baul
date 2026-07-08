@@ -72,6 +72,8 @@ private class FakeUploadLogDao : UploadLogDao {
 
     override suspend fun countPendingDeletions(): Int =
         flow.value.count { it.status == UploadStatus.SUCCESS && !it.sourceDeleted }
+
+    override suspend fun pruneOlderThan(successAndCancelledCutoff: Long, failedCutoff: Long): Int = 0
 }
 
 private class FakeRuleDao : RuleDao {

@@ -12,6 +12,7 @@ import com.santiagojorda.baul.domain.model.UploadStatus
 import com.santiagojorda.baul.widget.SyncStatusWidget
 import com.santiagojorda.baul.work.UploadWorkScheduler
 import androidx.glance.appwidget.updateAll
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -89,5 +90,21 @@ class UploadLogRepository(
         uploadLogDao.getForRule(ruleId)
             .filter { it.status == UploadStatus.PENDING || it.status == UploadStatus.UPLOADING }
             .forEach { cancel(it.toDomain()) }
+    }
+
+    /**
+     * Borra entradas viejas de `upload_log` para que no crezca sin límite (ver
+     * [com.santiagojorda.baul.work.LogRetentionWorker], que la llama una vez al día). Devuelve
+     * cuántas filas borró, para poder verificarlo en tests sin depender de un mock de logging.
+     */
+    suspend fun pruneOldEntries(now: Long = System.currentTimeMillis()): Int =
+        uploadLogDao.pruneOlderThan(
+            successAndCancelledCutoff = now - SUCCESS_AND_CANCELLED_RETENTION_MS,
+            failedCutoff = now - FAILED_RETENTION_MS,
+        )
+
+    companion object {
+        val SUCCESS_AND_CANCELLED_RETENTION_MS = TimeUnit.DAYS.toMillis(90)
+        val FAILED_RETENTION_MS = TimeUnit.DAYS.toMillis(180)
     }
 }

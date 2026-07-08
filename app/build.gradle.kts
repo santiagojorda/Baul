@@ -117,6 +117,7 @@ kover {
                     // UploadWorker.doWork() justamente para poder testearla sin WorkManager de por
                     // medio (ver UploadOutcomeResolverTest), así que no entra en esta lista.
                     "com.santiagojorda.baul.work.MediaScanWorker",
+                    "com.santiagojorda.baul.work.LogRetentionWorker",
                     "com.santiagojorda.baul.work.UploadWorkScheduler",
                     "com.santiagojorda.baul.work.UploadNotificationService*",
                     "com.santiagojorda.baul.work.UploadWorker*",

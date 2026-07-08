@@ -13,6 +13,7 @@ import com.santiagojorda.baul.data.repository.UploadLogRepository
 import com.santiagojorda.baul.media.MediaChangeObserver
 import com.santiagojorda.baul.media.MediaMetadataReader
 import com.santiagojorda.baul.media.SyncCoordinator
+import com.santiagojorda.baul.work.LogRetentionWorker
 import com.santiagojorda.baul.work.MediaScanWorker
 import com.santiagojorda.baul.work.UploadNotificationService
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -66,6 +67,15 @@ class BaulApplication : Application() {
             MediaScanWorker.UNIQUE_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             periodicScan,
+        )
+
+        // Poda el historial una vez al día (ver LogRetentionWorker/UploadLogRepository.pruneOldEntries):
+        // la ventana de retención se mide en meses, no hace falta más frecuencia que esta.
+        val periodicLogRetention = PeriodicWorkRequestBuilder<LogRetentionWorker>(1, TimeUnit.DAYS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            LogRetentionWorker.UNIQUE_WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            periodicLogRetention,
         )
     }
 }

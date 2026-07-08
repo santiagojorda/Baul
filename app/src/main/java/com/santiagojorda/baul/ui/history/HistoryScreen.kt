@@ -240,12 +240,18 @@ private fun HistoryRow(entry: UploadLogEntry, onRetry: () -> Unit, onCancel: () 
                         .padding(top = 4.dp, end = 16.dp),
                 )
             }
-            entry.errorMessage?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
+            // Solo en FAILED de verdad: en PENDING el errorMessage es de un intento previo que
+            // está reintentando solo (ej. cuota excedida, retryable), y el detalle técnico de eso
+            // vive en Logs — mostrarlo acá haría ver como un fallo algo que todavía se puede
+            // resolver solo.
+            if (entry.status == UploadStatus.FAILED) {
+                entry.errorMessage?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
         when (entry.status) {

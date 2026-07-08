@@ -63,6 +63,19 @@ interface UploadLogDao {
             "WHERE ul.status = 'SUCCESS' AND ul.sourceDeleted = 0 AND r.deleteSourceAfterUpload = 1",
     )
     suspend fun countPendingDeletions(): Int
+
+    /**
+     * Poda el historial para que `upload_log` no crezca sin límite. SUCCESS/CANCELLED vencen
+     * antes porque ya cumplieron su propósito una vez confirmados; FAILED se conserva más tiempo
+     * porque es justo lo que alguien va a querer revisar para diagnosticar un problema. PENDING y
+     * UPLOADING nunca se tocan acá sin importar la antigüedad: son trabajo en curso, no historial.
+     */
+    @Query(
+        "DELETE FROM upload_log WHERE " +
+            "(status IN ('SUCCESS', 'CANCELLED') AND createdAt < :successAndCancelledCutoff) OR " +
+            "(status = 'FAILED' AND createdAt < :failedCutoff)",
+    )
+    suspend fun pruneOlderThan(successAndCancelledCutoff: Long, failedCutoff: Long): Int
 }
 
 /** Cuántos archivos hay en cada [UploadStatus], para el widget de pantalla de inicio. */
