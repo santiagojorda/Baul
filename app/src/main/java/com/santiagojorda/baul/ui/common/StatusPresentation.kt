@@ -28,5 +28,8 @@ fun UploadStatus.presentation(attemptCount: Int = 0): StatusPresentation = when 
     UploadStatus.UPLOADING -> StatusPresentation(label = "Subiendo…", color = MaterialTheme.colorScheme.primary)
     UploadStatus.SUCCESS -> StatusPresentation(label = "Subido", color = MaterialTheme.colorScheme.success)
     UploadStatus.FAILED -> StatusPresentation(label = "Error", color = MaterialTheme.colorScheme.error)
-    UploadStatus.CANCELLED -> StatusPresentation(label = "Cancelado", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    UploadStatus.CANCELLED -> StatusPresentation(
+        label = "Cancelado",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
