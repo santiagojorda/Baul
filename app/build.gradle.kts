@@ -65,7 +65,10 @@ kover {
                 // infla el denominador del % de coverage sin aportar señal real.
                 annotatedBy("androidx.compose.runtime.Composable")
                 classes(
-                    "com.santiagojorda.baul.MainActivity",
+                    // Wildcard al final en las dos de acá abajo para agarrar también las clases
+                    // sintéticas que genera un lambda adentro (setContent {} de Compose): esas
+                    // quedan como MainActivity$onCreate$1, no matchean un nombre exacto.
+                    "com.santiagojorda.baul.MainActivity*",
                     "com.santiagojorda.baul.BaulApplication",
                     "com.santiagojorda.baul.ui.theme.*",
                     "com.santiagojorda.baul.ui.navigation.*",
@@ -76,7 +79,9 @@ kover {
                     // Sign-In: no hay forma de fakearlos sin un seam de DI que hoy no existe. Se
                     // dejan afuera del % en vez de simular tests que no prueban nada real.
                     "com.santiagojorda.baul.work.*",
-                    "com.santiagojorda.baul.auth.GoogleAuthManager",
+                    // Idem wildcard: GoogleAuthManager tiene withContext { } / lambdas internos
+                    // que Kotlin compila como clases separadas (GoogleAuthManager$metodo$N).
+                    "com.santiagojorda.baul.auth.GoogleAuthManager*",
                     "com.santiagojorda.baul.upload.YouTubeUploader",
                     "com.santiagojorda.baul.upload.GooglePhotosUploader",
                     "com.santiagojorda.baul.upload.DriveUploader",
