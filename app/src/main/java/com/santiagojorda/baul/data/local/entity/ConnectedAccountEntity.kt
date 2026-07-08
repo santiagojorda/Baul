@@ -10,4 +10,6 @@ data class ConnectedAccountEntity(
     val connectedAt: Long = System.currentTimeMillis(),
     /** Cuál usa el auto-sync de carpetas nuevas cuando hay más de una cuenta conectada. */
     val isDefault: Boolean = false,
+    /** Google devolvió TokenResult.NeedsReauth subiendo con esta cuenta: hace falta reconectarla a mano. */
+    val needsReauth: Boolean = false,
 )

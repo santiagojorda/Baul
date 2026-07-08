@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -28,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +82,8 @@ fun BaulApp() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val snackbarHostState = remember { SnackbarHostState() }
+    val accounts by app.connectedAccountRepository.observeAccounts().collectAsState(initial = emptyList())
+    val someAccountNeedsReauth = accounts.any { it.needsReauth }
 
     DeleteUploadedSourcesEffect(app)
     ScanExistingFoldersEffect(app)
@@ -125,7 +130,14 @@ fun BaulApp() {
                     NavigationBarItem(
                         selected = currentRoute == BaulDestinations.ACCOUNTS,
                         onClick = { navController.navigateToBottomBarRoute(BaulDestinations.ACCOUNTS) },
-                        icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
+                        icon = {
+                            // Badge acá (visible en cualquier pantalla, no solo entrando a
+                            // Cuentas) para que "Google revocó el acceso" no quede escondido
+                            // semanas hasta que al usuario se le ocurra abrir esa pestaña.
+                            BadgedBox(badge = { if (someAccountNeedsReauth) Badge() }) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = null)
+                            }
+                        },
                         label = { Text("Cuentas") },
                     )
                 }

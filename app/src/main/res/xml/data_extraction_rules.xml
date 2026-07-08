@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+). Excluye la base de datos de Room (mediasync.db: reglas, historial de
+  subidas, cuentas conectadas) tanto del backup en la nube como de la transferencia
+  dispositivo-a-dispositivo. No guarda tokens de acceso (se piden frescos en cada subida vía
+  GoogleAuthUtil, ver GoogleAuthManager), pero incluye emails de cuentas conectadas y no tiene
+  sentido restaurar un historial de subidas viejo en un dispositivo nuevo.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" />
+    </device-transfer>
+</data-extraction-rules>

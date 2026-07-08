@@ -68,6 +68,10 @@ private class FakeConnectedAccountDao : ConnectedAccountDao {
         flow.value = flow.value.map { if (it.email == email) it.copy(isDefault = true) else it }
     }
 
+    override suspend fun markNeedsReauth(email: String) {
+        flow.value = flow.value.map { if (it.email == email) it.copy(needsReauth = true) else it }
+    }
+
     override suspend fun upsert(account: ConnectedAccountEntity) {
         flow.value = flow.value.filterNot { it.email == account.email } + account
     }

@@ -12,6 +12,7 @@ import com.santiagojorda.baul.data.local.migration.MIGRATION_5_6
 import com.santiagojorda.baul.data.local.migration.MIGRATION_6_8
 import com.santiagojorda.baul.data.local.migration.MIGRATION_8_9
 import com.santiagojorda.baul.data.local.migration.MIGRATION_9_10
+import com.santiagojorda.baul.data.local.migration.MIGRATION_10_11
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -54,6 +55,7 @@ class MigrationTest {
                 MIGRATION_6_8,
                 MIGRATION_8_9,
                 MIGRATION_9_10,
+                MIGRATION_10_11,
             )
             .build()
         helper.closeWhenFinished(db)
@@ -77,6 +79,12 @@ class MigrationTest {
                 assertTrue(cursor.moveToFirst())
                 assertEquals(0, cursor.getInt(0))
             }
+        }
+        // needsReauth (MIGRATION_10_11) debe existir en connected_accounts con default 0.
+        migrated.query("PRAGMA table_info(`connected_accounts`)").use { cursor ->
+            val nameColumn = cursor.getColumnIndexOrThrow("name")
+            val columnNames = generateSequence { if (cursor.moveToNext()) cursor.getString(nameColumn) else null }.toList()
+            assertTrue(columnNames.contains("needsReauth"))
         }
         // youtube_quota_usage se elimina en MIGRATION_9_10: ya no deberia existir.
         migrated.query(
@@ -112,6 +120,7 @@ class MigrationTest {
                 MIGRATION_6_8,
                 MIGRATION_8_9,
                 MIGRATION_9_10,
+                MIGRATION_10_11,
             )
             .build()
         helper.closeWhenFinished(db)
@@ -134,7 +143,14 @@ class MigrationTest {
     }
 
     private fun seedVersion1Database() {
-        val dbFile = InstrumentationRegistry.getInstrumentation().targetContext.getDatabasePath(TEST_DB)
+        val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        // Los dos @Test de esta clase seedean el mismo TEST_DB a mano (sin pasar por
+        // helper.createDatabase()), así que el archivo de un test anterior (o de una corrida
+        // previa) sobrevive en el dispositivo si no se borra explícitamente acá: en un emulador
+        // efímero no se nota, pero en un dispositivo real con estado persistente entre corridas
+        // el segundo test fallaba con "table `rules` already exists".
+        targetContext.deleteDatabase(TEST_DB)
+        val dbFile = targetContext.getDatabasePath(TEST_DB)
         dbFile.parentFile?.mkdirs()
         val seed = SQLiteDatabase.openOrCreateDatabase(dbFile, null)
         seed.execSQL(

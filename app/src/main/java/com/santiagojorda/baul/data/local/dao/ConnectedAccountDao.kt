@@ -32,6 +32,9 @@ interface ConnectedAccountDao {
     @Query("UPDATE connected_accounts SET isDefault = 1 WHERE email = :email")
     suspend fun markAsDefault(email: String)
 
+    @Query("UPDATE connected_accounts SET needsReauth = 1 WHERE email = :email")
+    suspend fun markNeedsReauth(email: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(account: ConnectedAccountEntity)
 

@@ -32,6 +32,10 @@ private class FakeConnectedAccountDao : ConnectedAccountDao {
         flow.value = flow.value.map { if (it.email == email) it.copy(isDefault = true) else it }
     }
 
+    override suspend fun markNeedsReauth(email: String) {
+        flow.value = flow.value.map { if (it.email == email) it.copy(needsReauth = true) else it }
+    }
+
     override suspend fun upsert(account: ConnectedAccountEntity) {
         flow.value = flow.value.filterNot { it.email == account.email } + account
     }
@@ -109,5 +113,27 @@ class ConnectedAccountRepositoryTest {
         repository.remove(requireNotNull(repository.getByEmail("a@example.com")))
 
         assertNull(repository.getByEmail("a@example.com"))
+    }
+
+    @Test
+    fun `markNeedsReauth marca la cuenta como que necesita reautorizar`() = runTest {
+        repository.save(ConnectedAccount(email = "a@example.com"))
+
+        repository.markNeedsReauth("a@example.com")
+
+        assertTrue(requireNotNull(repository.getByEmail("a@example.com")).needsReauth)
+    }
+
+    @Test
+    fun `reconectar una cuenta marcada como needsReauth limpia el flag`() = runTest {
+        repository.save(ConnectedAccount(email = "a@example.com"))
+        repository.markNeedsReauth("a@example.com")
+        assertTrue(requireNotNull(repository.getByEmail("a@example.com")).needsReauth)
+
+        // Mismo flujo que un re-login exitoso: AccountsViewModel arma un ConnectedAccount nuevo
+        // (needsReauth = false por default) y lo guarda.
+        repository.save(ConnectedAccount(email = "a@example.com"))
+
+        assertEquals(false, requireNotNull(repository.getByEmail("a@example.com")).needsReauth)
     }
 }

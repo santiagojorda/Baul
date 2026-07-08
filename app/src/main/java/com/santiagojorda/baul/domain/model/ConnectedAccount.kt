@@ -9,4 +9,6 @@ data class ConnectedAccount(
     val displayName: String? = null,
     val connectedAt: Long = System.currentTimeMillis(),
     val isDefault: Boolean = false,
+    /** Google devolvió [com.santiagojorda.baul.auth.TokenResult.NeedsReauth] subiendo con esta cuenta. */
+    val needsReauth: Boolean = false,
 )

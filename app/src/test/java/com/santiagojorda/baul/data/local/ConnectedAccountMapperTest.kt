@@ -32,4 +32,11 @@ class ConnectedAccountMapperTest {
 
         assertEquals(false, account.toEntity().toDomain().isDefault)
     }
+
+    @Test
+    fun `needsReauth true se preserva en el mapeo`() {
+        val account = ConnectedAccount(email = "user@example.com", needsReauth = true)
+
+        assertEquals(true, account.toEntity().toDomain().needsReauth)
+    }
 }

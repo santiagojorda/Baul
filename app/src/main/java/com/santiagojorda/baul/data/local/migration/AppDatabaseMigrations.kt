@@ -156,6 +156,17 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
+/**
+ * v10 -> v11: reautenticación visible. Antes, si Google revocaba el acceso la única señal era un
+ * `FAILED` en el historial; ahora `connected_accounts` guarda si esa cuenta necesita que la
+ * reconecten a mano (ver GooglePhotosUploader/AccountsScreen).
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `connected_accounts` ADD COLUMN `needsReauth` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 val APP_DATABASE_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -165,4 +176,5 @@ val APP_DATABASE_MIGRATIONS = arrayOf(
     MIGRATION_6_8,
     MIGRATION_8_9,
     MIGRATION_9_10,
+    MIGRATION_10_11,
 )

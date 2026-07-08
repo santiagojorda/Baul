@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
@@ -133,19 +134,48 @@ fun AccountsScreen(
 
 @Composable
 private fun AccountRow(account: ConnectedAccount, onRemove: () -> Unit, onSetDefault: () -> Unit) {
-    ListItemCard {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = account.displayName ?: account.email, style = MaterialTheme.typography.titleMedium)
-            Text(text = account.email, style = MaterialTheme.typography.bodySmall)
+    Column {
+        ListItemCard {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = account.displayName ?: account.email, style = MaterialTheme.typography.titleMedium)
+                Text(text = account.email, style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = onSetDefault) {
+                Icon(
+                    imageVector = if (account.isDefault) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = if (account.isDefault) {
+                        "Cuenta default del auto-sync"
+                    } else {
+                        "Marcar como default"
+                    },
+                )
+            }
+            IconButton(onClick = onRemove) {
+                Icon(imageVector = Icons.Default.Delete, contentDescription = "Quitar cuenta")
+            }
         }
-        IconButton(onClick = onSetDefault) {
-            Icon(
-                imageVector = if (account.isDefault) Icons.Default.Star else Icons.Default.StarBorder,
-                contentDescription = if (account.isDefault) "Cuenta default del auto-sync" else "Marcar como default",
-            )
-        }
-        IconButton(onClick = onRemove) {
-            Icon(imageVector = Icons.Default.Delete, contentDescription = "Quitar cuenta")
+        // Persistente a propósito (no un Snackbar): si Google revoca el acceso, la señal tiene que
+        // seguir visible hasta que el usuario reconecte, no desaparecer sola a los pocos segundos.
+        if (account.needsReauth) {
+            ListItemCard {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+                Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text(
+                        text = "Necesita reautorización",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Text(
+                        text = "Google revocó el acceso a esta cuenta. Tocá \"Agregar cuenta de Google\" " +
+                            "de arriba y volvé a elegirla para retomar las subidas pendientes.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
         }
     }
 }

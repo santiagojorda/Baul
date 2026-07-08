@@ -52,10 +52,15 @@ class GooglePhotosUploader(
 
         val accessToken = when (val tokenResult = authManager.getFreshAccessToken(rule.googleAccountEmail, GoogleApiScopes.ALL)) {
             is TokenResult.Success -> tokenResult.accessToken
-            is TokenResult.NeedsReauth -> return@withContext UploadResult.Failure(
-                message = "La cuenta ${rule.googleAccountEmail} necesita que la reautorices a mano (abrí la app y reconectala)",
-                retryable = false,
-            )
+            is TokenResult.NeedsReauth -> {
+                // Sin esto, la única señal de que Google revocó el acceso era una fila FAILED en
+                // el historial — un usuario no técnico puede no darse cuenta durante semanas.
+                connectedAccountRepository.markNeedsReauth(rule.googleAccountEmail)
+                return@withContext UploadResult.Failure(
+                    message = "La cuenta ${rule.googleAccountEmail} necesita que la reautorices a mano (abrí la app y reconectala)",
+                    retryable = false,
+                )
+            }
             is TokenResult.Failure -> return@withContext UploadResult.Failure(tokenResult.message, tokenResult.retryable)
         }
 

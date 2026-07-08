@@ -1,8 +1,8 @@
 *.iml
 .gradle/
+.kotlin/
 /local.properties
 /.idea/
-/docs
 .DS_Store
 /build
 /captures
@@ -13,3 +13,6 @@ local.properties
 /app/schemas
 *.hprof
 /.claude/
+/keystore.properties
+*.jks
+*.keystore
