@@ -88,6 +88,9 @@ kover {
                     "com.santiagojorda.baul.media.SyncCoordinator",
                     "com.santiagojorda.baul.media.MediaMetadataReader",
                     "com.santiagojorda.baul.media.MediaChangeObserver",
+                    // FolderPlaceholder es pura interacción con ContentResolver/MediaStore real,
+                    // sin lógica separable para testear; AllFilesAccess sí tiene test (más abajo).
+                    "com.santiagojorda.baul.storage.FolderPlaceholder",
                 )
             }
         }
@@ -120,6 +123,7 @@ dependencies {
     ksp(libs.room.compiler)
 
     implementation(libs.work.runtime.ktx)
+    testImplementation(libs.work.testing)
 
     implementation(libs.glance.appwidget)
 

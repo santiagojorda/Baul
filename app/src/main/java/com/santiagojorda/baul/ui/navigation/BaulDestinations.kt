@@ -5,6 +5,7 @@ object BaulDestinations {
     const val HISTORY = "history"
     const val ACCOUNTS = "accounts"
     const val EXCLUDED_FOLDERS = "excluded_folders"
+    const val LOGS = "logs"
 
     const val RULE_EDITOR_ARG_RULE_ID = "ruleId"
     const val RULE_EDITOR_ROUTE = "rule_editor?$RULE_EDITOR_ARG_RULE_ID={$RULE_EDITOR_ARG_RULE_ID}"

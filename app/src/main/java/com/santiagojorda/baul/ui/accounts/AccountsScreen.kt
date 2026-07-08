@@ -22,13 +22,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.santiagojorda.baul.domain.model.ConnectedAccount
+import com.santiagojorda.baul.storage.AllFilesAccess
 import com.santiagojorda.baul.ui.common.EmptyState
 import com.santiagojorda.baul.ui.common.ListItemCard
 
@@ -57,7 +65,38 @@ fun AccountsScreen(
         }
     }
 
+    // isGranted() se vuelve a chequear al volver de Ajustes: no hay callback de resultado para
+    // un permiso especial como este, solo el ciclo de vida de la pantalla.
+    var allFilesAccessGranted by remember { mutableStateOf(AllFilesAccess.isGranted()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                allFilesAccessGranted = AllFilesAccess.isGranted()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        if (!allFilesAccessGranted) {
+            ListItemCard {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Borrado sin confirmación", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Da acceso a todos los archivos para que Baul borre los originales " +
+                            "ya subidos sin preguntar cada vez que abrís la app.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Button(onClick = { context.startActivity(AllFilesAccess.requestIntent(context)) }) {
+                    Text("Activar")
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Button(
             onClick = { activity?.let { signInLauncher.launch(viewModel.signInIntent(it)) } },
             enabled = !isLoading && activity != null,

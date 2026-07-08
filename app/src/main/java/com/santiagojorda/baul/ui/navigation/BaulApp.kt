@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -47,12 +48,17 @@ import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.santiagojorda.baul.BaulApplication
 import com.santiagojorda.baul.domain.model.UploadLogEntry
+import com.santiagojorda.baul.media.RuleMatcher
+import com.santiagojorda.baul.storage.AllFilesAccess
+import com.santiagojorda.baul.storage.FolderPlaceholder
 import com.santiagojorda.baul.ui.accounts.AccountsScreen
 import com.santiagojorda.baul.ui.accounts.AccountsViewModel
 import com.santiagojorda.baul.ui.excludedfolders.ExcludedFoldersScreen
 import com.santiagojorda.baul.ui.excludedfolders.ExcludedFoldersViewModel
 import com.santiagojorda.baul.ui.history.HistoryScreen
 import com.santiagojorda.baul.ui.history.HistoryViewModel
+import com.santiagojorda.baul.ui.logs.LogsScreen
+import com.santiagojorda.baul.ui.logs.LogsViewModel
 import com.santiagojorda.baul.ui.rulelist.RuleListScreen
 import com.santiagojorda.baul.ui.rulelist.RuleListViewModel
 import com.santiagojorda.baul.ui.ruleeditor.RuleEditorScreen
@@ -85,6 +91,16 @@ fun BaulApp() {
                     actions = {
                         IconButton(onClick = { navController.navigate(BaulDestinations.EXCLUDED_FOLDERS) }) {
                             Icon(Icons.Default.Block, contentDescription = "Carpetas excluidas del auto-sync")
+                        }
+                    },
+                )
+            }
+            if (currentRoute == BaulDestinations.HISTORY) {
+                TopAppBar(
+                    title = { Text("Historial") },
+                    actions = {
+                        IconButton(onClick = { navController.navigate(BaulDestinations.LOGS) }) {
+                            Icon(Icons.Default.ErrorOutline, contentDescription = "Ver registro de errores")
                         }
                     },
                 )
@@ -194,6 +210,14 @@ fun BaulApp() {
                 )
                 ExcludedFoldersScreen(viewModel = viewModel)
             }
+            composable(BaulDestinations.LOGS) {
+                val viewModel: LogsViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer { LogsViewModel(app.uploadLogRepository, app.ruleRepository) }
+                    },
+                )
+                LogsScreen(viewModel = viewModel)
+            }
         }
     }
 }
@@ -207,9 +231,11 @@ private fun NavController.navigateToBottomBarRoute(route: String) {
 }
 
 /**
- * El borrado del original necesita confirmación del sistema (Activity), no lo puede hacer el
- * UploadWorker solo en background. Al abrir la app, si hay archivos subidos con éxito cuya regla
- * pide borrar el original y todavía no se confirmó, se pide todo junto en un solo diálogo.
+ * El UploadWorker no puede confirmar el borrado del original en background (ver comentario en
+ * [com.santiagojorda.baul.work.UploadWorker.doWork]), así que queda pendiente hasta la próxima
+ * vez que se abre la app. Con "Acceso a todos los archivos" otorgado ([AllFilesAccess]) se borra
+ * directo acá, sin preguntar nada; si no, se pide confirmación al sistema en un solo diálogo para
+ * todo el lote (requiere una Activity).
  */
 @Composable
 private fun DeleteUploadedSourcesEffect(app: BaulApplication) {
@@ -229,7 +255,7 @@ private fun DeleteUploadedSourcesEffect(app: BaulApplication) {
 
     LaunchedEffect(Unit) {
         val pending = app.uploadLogRepository.getPendingDeletions()
-        if (pending.isEmpty() || activity == null) return@LaunchedEffect
+        if (pending.isEmpty()) return@LaunchedEffect
 
         // Si el archivo ya no existe en MediaStore (borrado a mano, por otra app, o ya borrado
         // en una corrida anterior que no llegó a marcar la fila), createDeleteRequest tira
@@ -243,6 +269,27 @@ private fun DeleteUploadedSourcesEffect(app: BaulApplication) {
         }
         if (existing.isEmpty()) return@LaunchedEffect
 
+        withContext(Dispatchers.IO) {
+            // Antes de borrar el/los últimos archivos de una carpeta, se deja un placeholder ahí
+            // para que la carpeta nunca quede vacía (ver FolderPlaceholder).
+            existing.map { it.ruleId }.distinct().forEach { ruleId ->
+                val rule = app.database.ruleDao().getRuleById(ruleId) ?: return@forEach
+                val relativePath = RuleMatcher.expectedRelativePath(rule) ?: return@forEach
+                FolderPlaceholder.ensure(context.contentResolver, relativePath)
+            }
+        }
+
+        if (AllFilesAccess.isGranted()) {
+            // Con "Acceso a todos los archivos" otorgado no hace falta pedir confirmación al
+            // sistema: se borra directo, sin diálogo, ni al abrir la app ni nunca.
+            withContext(Dispatchers.IO) {
+                existing.forEach { entry -> context.contentResolver.delete(Uri.parse(entry.mediaUri), null, null) }
+            }
+            app.uploadLogRepository.markSourceDeleted(existing)
+            return@LaunchedEffect
+        }
+
+        if (activity == null) return@LaunchedEffect
         pendingEntries = existing
         try {
             val uris = existing.map { Uri.parse(it.mediaUri) }

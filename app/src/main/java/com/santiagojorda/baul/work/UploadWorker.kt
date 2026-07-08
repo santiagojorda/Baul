@@ -97,9 +97,10 @@ class UploadWorker(
         // se marca la subida como SUCCESS/sourceDeleted=false, y DeleteUploadedSourcesEffect (en
         // BaulApp) revisa los pendientes y pide la confirmación la próxima vez que se abre la app.
 
-        // Mientras todavía queden reintentos disponibles para un fallo transitorio, no se muestra
-        // como error real en la UI (queda PENDING, "reintentando solo") — recién se marca FAILED
-        // si el error no es reintentable, o si ya se agotaron los reintentos.
+        // Mientras todavía queden reintentos disponibles para un fallo transitorio, el estado
+        // queda PENDING ("reintentando solo") en vez de FAILED — recién se marca FAILED si el
+        // error no es reintentable, o si ya se agotaron los reintentos. El errorMessage sí se
+        // guarda en ambos casos, para que se pueda ver por qué está reintentando.
         val willRetry = uploadResult is UploadResult.Failure && uploadResult.retryable && runAttemptCount < MAX_RETRY_ATTEMPTS
 
         val finishedAt = System.currentTimeMillis()
@@ -114,7 +115,7 @@ class UploadWorker(
                     willRetry -> UploadStatus.PENDING
                     else -> UploadStatus.FAILED
                 },
-                errorMessage = (uploadResult as? UploadResult.Failure)?.takeUnless { willRetry }?.message,
+                errorMessage = (uploadResult as? UploadResult.Failure)?.message,
                 remoteId = (uploadResult as? UploadResult.Success)?.remoteId,
                 attemptCount = runAttemptCount + 1,
                 createdAt = existingLog?.createdAt ?: startedAt,

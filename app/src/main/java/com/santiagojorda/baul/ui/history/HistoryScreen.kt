@@ -250,7 +250,7 @@ private fun HistoryRow(entry: UploadLogEntry, onRetry: () -> Unit, onCancel: () 
             }
         }
         when (entry.status) {
-            UploadStatus.UPLOADING -> IconButton(onClick = onCancel) {
+            UploadStatus.UPLOADING, UploadStatus.PENDING -> IconButton(onClick = onCancel) {
                 Icon(imageVector = Icons.Default.Close, contentDescription = "Cancelar subida")
             }
             UploadStatus.FAILED, UploadStatus.CANCELLED -> IconButton(onClick = onRetry) {

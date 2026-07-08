@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -12,6 +13,17 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+
+    <!--
+      Permiso especial: el usuario lo activa a mano desde Ajustes (no hay popup in-app posible).
+      Sin esto, borrar un archivo que la app no creó siempre exige el diálogo de confirmación del
+      sistema (MediaStore.createDeleteRequest); con "Acceso a todos los archivos" otorgado, se
+      puede borrar directo sin preguntar nada. tools:ignore porque Play Store exige una
+      declaración especial para este permiso que no aplica acá (app no distribuida en Play Store).
+    -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <!-- Notificación persistente de "sincronizando" mientras hay subidas en curso -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
