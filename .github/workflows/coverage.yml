@@ -24,7 +24,7 @@ jobs:
       - name: Run unit tests with coverage
         run: ./gradlew testDebugUnitTest koverXmlReportDebug
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: app/build/reports/kover/reportDebug.xml
