@@ -24,14 +24,19 @@ jobs:
       - name: Run unit tests with coverage
         run: ./gradlew testDebugUnitTest koverXmlReportDebug
 
+      # Dependabot no tiene acceso a los secrets normales del repo (GitHub lo restringe a
+      # propósito, para que un PR de bump de version no pueda robarse un secret) — sin este if,
+      # CODECOV_TOKEN llega vacio en esas PRs, Codecov rechaza el upload, y fail_ci_if_error deja
+      # todo el job en rojo aunque tests/detekt/lint hayan pasado bien.
       - uses: codecov/codecov-action@v7
+        if: ${{ github.actor != 'dependabot[bot]' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: app/build/reports/kover/reportDebug.xml
           fail_ci_if_error: true
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && github.actor != 'dependabot[bot]' }}
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
