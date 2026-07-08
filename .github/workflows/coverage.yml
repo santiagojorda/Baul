@@ -34,12 +34,19 @@ jobs:
       # Dependabot sigue sin secrets aunque el actor sea yo, porque la restricción está atada al
       # PR/branch, no a quién lo relanza. Queda null (no error) en push a main, así que ahí igual
       # se ejecuta.
+      #
+      # fail_ci_if_error: false a propósito: Codecov tiene un bug de infraestructura propio
+      # (migración de keybase de su clave GPG de firma) que hace que la verificación de firma del
+      # binario del uploader falle de forma intermitente — no depende de nuestra versión pinneada
+      # ni de nada de este repo (confirmado viendo corridas alternar éxito/fallo con el mismo
+      # v7). No tiene sentido que un blip de un tercero tire abajo todo el chequeo requerido de CI
+      # cuando lo que de verdad importa (tests/detekt/lint) ya corrió bien arriba.
       - uses: codecov/codecov-action@v7
         if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: app/build/reports/kover/reportDebug.xml
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() && github.event.pull_request.user.login != 'dependabot[bot]' }}
@@ -47,3 +54,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: app/build/test-results/testDebugUnitTest/*.xml
+          fail_ci_if_error: false
